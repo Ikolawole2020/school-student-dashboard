@@ -3,6 +3,7 @@ import os
 from datetime import date, timedelta
 
 from flask import Flask, request, render_template, flash, redirect, url_for
+import click
 
 from config import Config
 from extensions import db, login_manager, csrf
@@ -79,22 +80,77 @@ def create_app():
         db.session.rollback()
         return render_template('errors/500.html'), 500
 
-    @app.cli.command('seed-admin')
-    def seed_admin():
-        """Create an admin account if none exists yet."""
-        from werkzeug.security import generate_password_hash
-        if User.query.filter_by(role='admin').first():
-            print('An admin account already exists.')
+    @app.cli.command('list-users')
+    def list_users():
+        """Show every account, so you can see what is really in the database."""
+        rows = User.query.order_by(User.id).all()
+        if not rows:
+            click.echo('No accounts exist yet.')
             return
-        email = os.environ.get('ADMIN_EMAIL', 'admin@smc.com')
-        password = os.environ.get('ADMIN_PASSWORD', 'Admin123#')
-        db.session.add(User(
-            email=email,
-            password_hash=generate_password_hash(password),
-            role='admin',
-        ))
+        click.echo(f'{"ID":<5}{"EMAIL":<34}{"ROLE":<10}ACTIVE')
+        for u in rows:
+            click.echo(f'{u.id:<5}{u.email:<34}{u.role:<10}{bool(u.is_active)}')
+
+    @app.cli.command('create-admin')
+    @click.option('--email', prompt='Admin email address')
+    @click.option('--password', prompt='Password', hide_input=True,
+                  confirmation_prompt=True)
+    @click.option('--reset', is_flag=True,
+                  help='Reset the password if the account already exists')
+    def create_admin(email, password, reset):
+        """Create an admin account, or reset an existing one's password."""
+        from werkzeug.security import generate_password_hash
+
+        if len(password) < 8:
+            click.echo('Password must be at least 8 characters.')
+            return
+
+        email = email.strip().lower()
+        user = User.query.filter_by(email=email).first()
+
+        if user and not reset:
+            click.echo(
+                f'{email} already exists (role: {user.role}). '
+                f'Re-run with --reset to change the password.'
+            )
+            return
+
+        if user:
+            user.password_hash = generate_password_hash(password)
+            user.role = 'admin'
+            user.is_active = True
+            click.echo(f'Password reset for {email}.')
+        else:
+            db.session.add(User(
+                email=email,
+                password_hash=generate_password_hash(password),
+                role='admin',
+            ))
+            click.echo(f'Admin account created: {email}')
+
         db.session.commit()
-        print(f'Created admin {email} with password {password}')
+
+    @app.cli.command('set-password')
+    @click.option('--email', prompt='Account email address')
+    @click.option('--password', prompt='New password', hide_input=True,
+                  confirmation_prompt=True)
+    def set_password(email, password):
+        """Set the password for any account (admin, teacher or student)."""
+        from werkzeug.security import generate_password_hash
+
+        if len(password) < 6:
+            click.echo('Password must be at least 6 characters.')
+            return
+
+        user = User.query.filter_by(email=email.strip().lower()).first()
+        if not user:
+            click.echo(f'No account found for {email}.')
+            return
+
+        user.password_hash = generate_password_hash(password)
+        user.is_active = True
+        db.session.commit()
+        click.echo(f'Password updated for {email} (role: {user.role}).')
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(public_bp, url_prefix='/')
@@ -110,5 +166,12 @@ def create_app():
     return app
 
 
+# A module-level instance so the Flask CLI can find the app
+# (e.g. FLASK_APP="app:create_admin" flask list-users).
+app = create_app()
+
+
 if __name__ == '__main__':
-    create_app().run(debug=True)
+    app.run(debug=True)
+
+

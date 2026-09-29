@@ -83,6 +83,57 @@ with app.app_context():
     else:
         print('lesson_plan.class_name already present')
 
+    # assignment.class_name lets a teacher type a class that is not yet in the
+    # Class table, instead of being forced to pick from a dropdown
+    a_cols = {
+        row[1] for row in cursor.execute('PRAGMA table_info(assignment)').fetchall()
+    }
+    if 'class_name' not in a_cols:
+        cursor.execute('ALTER TABLE assignment ADD COLUMN class_name VARCHAR(50)')
+        print('Added assignment.class_name')
+    else:
+        print('assignment.class_name already present')
+
+    # class_id was NOT NULL before; it is now optional so an assignment can
+    # target a class name that has not been created yet
+    a_cols_info = cursor.execute('PRAGMA table_info(assignment)').fetchall()
+    class_col = next((c for c in a_cols_info if c[1] == 'class_id'), None)
+    if class_col and class_col[3]:  # notnull flag set
+        print('Rebuilding assignment table to make class_id nullable...')
+        cursor.execute('PRAGMA foreign_keys=OFF')
+        cursor.execute('ALTER TABLE assignment RENAME TO assignment_old')
+        cursor.execute("""
+            CREATE TABLE assignment (
+                id INTEGER NOT NULL PRIMARY KEY,
+                title VARCHAR(150) NOT NULL,
+                description TEXT,
+                subject VARCHAR(80) NOT NULL,
+                class_name VARCHAR(50),
+                class_id INTEGER,
+                teacher_id INTEGER,
+                due_date DATE,
+                max_score FLOAT NOT NULL,
+                created_at DATETIME,
+                FOREIGN KEY(class_id) REFERENCES class (id),
+                FOREIGN KEY(teacher_id) REFERENCES teacher (id)
+            )
+        """)
+        cursor.execute("""
+            INSERT INTO assignment
+                (id, title, description, subject, class_name, class_id,
+                 teacher_id, due_date, max_score, created_at)
+            SELECT a.id, a.title, a.description, a.subject,
+                   COALESCE((SELECT c.class_name FROM class c
+                             WHERE c.id = a.class_id), ''),
+                   a.class_id, a.teacher_id, a.due_date, a.max_score, a.created_at
+            FROM assignment_old a
+        """)
+        cursor.execute('DROP TABLE assignment_old')
+        cursor.execute('PRAGMA foreign_keys=ON')
+        print('assignment.class_id is now nullable')
+    else:
+        print('assignment.class_id already nullable')
+
     conn.commit()
 
     # create_all inside the app context has already made the new tables
@@ -91,7 +142,11 @@ with app.app_context():
             "SELECT name FROM sqlite_master WHERE type='table'"
         ).fetchall()
     }
-    for name in ('assignment', 'assignment_score', 'lesson_plan', 'lesson_plan_image'):
+    for name in (
+        'assignment', 'assignment_score', 'assignment_media',
+        'assignment_submission', 'assignment_submission_file',
+        'lesson_plan', 'lesson_plan_image',
+    ):
         print(f'{name}: {"present" if name in tables else "MISSING"}')
 
     conn.close()

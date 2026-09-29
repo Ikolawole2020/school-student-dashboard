@@ -10,11 +10,12 @@
           {{ 'Edit Assignment' if assignment else 'Post an Assignment' }}
         </h3>
         <p class="page-subtitle">
-          Students in the selected class will see this immediately.
+          Type your subject and class, and attach photos if the work is easier
+          to show than to describe.
         </p>
       </div>
 
-      <form method="post">
+      <form method="post" enctype="multipart/form-data">
         {{ form.csrf_token }}
         <div class="row g-3">
           <div class="col-12">
@@ -25,17 +26,19 @@
 
           <div class="col-md-7">
             <label for="subject" class="form-label">Subject</label>
-            {{ form.subject(class="form-control", list="subjectList", placeholder="Start typing to choose a subject") }}
-            <datalist id="subjectList">
-              {% for s in subjects %}<option value="{{ s }}"></option>{% endfor %}
-            </datalist>
+            {{ form.subject(class="form-control", placeholder="e.g. Mathematics") }}
             {% for e in form.subject.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
           </div>
 
           <div class="col-md-5">
-            <label for="class_id" class="form-label">Class</label>
-            {{ form.class_id(class="form-select") }}
-            {% for e in form.class_id.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+            <label for="class_name" class="form-label">
+              Class <span class="text-muted">(optional)</span>
+            </label>
+            {{ form.class_name(class="form-control", list="classList", placeholder="e.g. JSS1") }}
+            <datalist id="classList">
+              {% for c in classes %}<option value="{{ c.class_name }}"></option>{% endfor %}
+            </datalist>
+            <div class="form-text">Type any class you teach, even one not yet created.</div>
           </div>
 
           <div class="col-md-7">
@@ -51,9 +54,37 @@
 
           <div class="col-12">
             <label for="description" class="form-label">Instructions</label>
-            {{ form.description(class="form-control", rows="6", placeholder="What should students do?") }}
+            {{ form.description(class="form-control", rows="5", placeholder="What should students do?") }}
+          </div>
+
+          <div class="col-12">
+            <label for="media" class="form-label">
+              Attach images <span class="text-muted">(optional)</span>
+            </label>
+            {{ form.media(class="form-control", multiple=True) }}
+            <div class="form-text">
+              Add a photo of the question, a diagram, or a scanned sheet - useful
+              when the work does not fit neatly in text. Select several at once;
+              each file must be under 4MB.
+            </div>
+            {% for e in form.media.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
           </div>
         </div>
+
+        {% if assignment and assignment.media %}
+        <div class="mt-4">
+          <label class="form-label">Already attached ({{ assignment.media | length }})</label>
+          <p class="text-muted small mb-2">
+            These stay as they are. Remove any from the assignment page instead.
+          </p>
+          <div class="d-flex flex-wrap gap-2">
+            {% for m in assignment.media %}
+            <img src="/uploads/{{ m.filename }}" alt="Attached image"
+              class="img-thumbnail" style="width: 96px; height: 72px; object-fit: cover;" />
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
 
         <div class="d-flex gap-2 mt-4">
           {{ form.submit(class="btn btn-brand px-4") }}

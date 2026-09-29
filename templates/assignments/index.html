@@ -68,9 +68,17 @@ content %}
         </div>
         <h5 class="mb-1">{{ a.title }}</h5>
         <p class="text-muted small mb-2">
-          <i class="fa-solid fa-school me-1"></i>{{ a.class_rel.class_name if a.class_rel else 'No class' }}
+          <i class="fa-solid fa-school me-1"></i>{{ a.class_name or (a.class_rel.class_name if a.class_rel else 'No class') }}
           <span class="mx-1">|</span>
           <i class="fa-solid fa-star me-1"></i>Out of {{ a.max_score | round(0) | int }}
+          {% if a.media %}
+          <span class="mx-1">|</span>
+          <i class="fa-solid fa-image me-1"></i>{{ a.media | length }}
+          {% endif %}
+          {% if a.submissions %}
+          <span class="mx-1">|</span>
+          <i class="fa-solid fa-inbox me-1"></i>{{ a.submissions | length }} in
+          {% endif %}
         </p>
         {% if a.description %}
         <p class="small mb-3 assignment-desc">{{ a.description | truncate(140) }}</p>

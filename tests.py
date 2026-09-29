@@ -3,11 +3,22 @@
 The previous smoke test only asserted "302 or 403", which passed even while
 the result-lookup IDOR was live. These exercise real logins and assert on the
 specific behaviour that matters.
+
+IMPORTANT: every test runs against a throwaway SQLite file. Earlier versions
+of this file called create_app() with the default database URI and then ran
+db.drop_all(), which wiped the real instance/starlight.db. DATABASE_URL is
+therefore set below *before* app.config is imported, so the production
+database is never opened.
 """
 import os
+import tempfile
 import unittest
 
 os.environ.setdefault('SECRET_KEY', 'test-secret-key')
+
+# point at a throwaway database before config.py is imported
+_TEST_DB = os.path.join(tempfile.gettempdir(), 'starlight_test.db')
+os.environ['DATABASE_URL'] = f'sqlite:///{_TEST_DB}'
 
 from werkzeug.security import generate_password_hash
 
@@ -15,13 +26,36 @@ from app import create_app
 from extensions import db
 from models import User, Student, Teacher, Class, Assignment, LessonPlan
 
+_REAL_DB_MARKER = os.path.join('instance', 'starlight.db')
+
+
+def assert_safe_to_destroy(app):
+    """Guard against ever running db.drop_all() against the real database.
+
+    During development a scratch script called create_app() with the default
+    URI and dropped every table, wiping live data. Anything that destroys the
+    database must call this first.
+    """
+    uri = app.config['SQLALCHEMY_DATABASE_URI']
+    if _REAL_DB_MARKER in uri or 'instance' in uri:
+        raise RuntimeError(
+            f'Refusing to run: {uri} is the real database. '
+            f'Set DATABASE_URL to a throwaway file first.'
+        )
+    if not uri.endswith('_test.db'):
+        raise RuntimeError(
+            f'Refusing to run: tests must use a *_test.db database, got {uri}'
+        )
+
 
 class BaseCase(unittest.TestCase):
     def setUp(self):
         self.app = create_app()
         self.app.config['TESTING'] = True
         self.app.config['WTF_CSRF_ENABLED'] = False
+
         self.client = self.app.test_client()
+        assert_safe_to_destroy(self.app)
 
         with self.app.app_context():
             db.drop_all()
@@ -215,13 +249,14 @@ class TestResultOwnership(BaseCase):
 
 
 class TestAssignments(BaseCase):
-    def _post(self, title='Homework 1', subject='Mathematics', class_id=None):
+    def _post(self, title='Homework 1', subject='Mathematics', class_name='JSS1'):
         return self.client.post(
             '/assignments/add',
             data={
                 'title': title,
                 'subject': subject,
-                'class_id': str(class_id or self.class_a_id),
+                # class is free text now, not a dropdown of the teacher's class
+                'class_name': class_name,
                 'description': 'Page 4, questions 1-10',
                 'max_score': '20',
             },
@@ -467,8 +502,9 @@ class TestTeachersWithoutClass(BaseCase):
             response.headers['Location'].endswith('/teacher/dashboard')
         )
 
-    def test_classless_teacher_can_own_lesson_plans(self):
-        """No class blocks class assignments, but not lesson plans."""
+    def test_classless_teacher_can_use_both_hubs(self):
+        """Class is free text on assignments, so a teacher without an assigned
+        class is not blocked from posting work or writing lesson plans."""
         self.login('admin@test.com', 'adminpass')
         self._add('Grace Bursar', '08031234567')
         email = self.set_password('Grace Bursar', 'knownpass123')
@@ -476,11 +512,22 @@ class TestTeachersWithoutClass(BaseCase):
         self.login(email, 'knownpass123')
 
         self.assertEqual(self.client.get('/lessons/').status_code, 200)
+        self.assertEqual(self.client.get('/lessons/add').status_code, 200)
+        self.assertEqual(self.client.get('/assignments/add').status_code, 200)
 
-        response = self.client.get('/assignments/add', follow_redirects=True)
-        self.assertIn(
-            'not assigned to a class', response.get_data(as_text=True)
+        response = self.client.post(
+            '/assignments/add',
+            data={
+                'title': 'Cover the register',
+                'subject': 'Administration',
+                'class_name': 'JSS1',
+                'max_score': '10',
+            },
+            follow_redirects=True,
         )
+        self.assertIn('Assignment posted', response.get_data(as_text=True))
+        with self.app.app_context():
+            self.assertEqual(Assignment.query.count(), 1)
 
     def test_class_can_be_assigned_later(self):
         self.login('admin@test.com', 'adminpass')

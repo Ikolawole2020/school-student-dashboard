@@ -286,14 +286,17 @@ class ViewResultForm(ClassChoicesMixin, FlaskForm):
 
 # ------------------------------------------------------------- assignments
 
-class AssignmentForm(ClassIdChoicesMixin, FlaskForm):
-    """Create/edit an assignment. Teachers and admins can both post."""
+class AssignmentForm(FlaskForm):
+    """Create/edit an assignment.
 
-    class_id_choice_fields = ('class_id',)
+    Class and subject are plain text fields, not dropdowns: a teacher may need
+    to post to a class that has not been created in the Class table yet, and
+    not every subject in the school is in the built-in subject list.
+    """
 
     title = StringField('Assignment title', validators=[DataRequired(), Length(max=150)])
     subject = StringField('Subject', validators=[DataRequired(), Length(max=80)])
-    class_id = SelectField('Class', coerce=int, choices=[], validators=[DataRequired()])
+    class_name = StringField('Class', validators=[Optional(), Length(max=50)])
     description = TextAreaField('Instructions', validators=[Optional()])
     due_date = DateField('Due date', format='%Y-%m-%d', validators=[Optional()])
     max_score = FloatField(
@@ -301,7 +304,22 @@ class AssignmentForm(ClassIdChoicesMixin, FlaskForm):
         default=100,
         validators=[Optional(), NumberRange(min=1, max=1000)],
     )
+    media = MultipleFileField(
+        'Attach images',
+        validators=[Optional(), FileSize(max_size=4 * 1024 * 1024)],
+    )
     submit = SubmitField('Save assignment')
+
+
+class SubmissionForm(FlaskForm):
+    """A student's answer, uploaded as one or more images."""
+
+    note = TextAreaField('Note (optional)', validators=[Optional(), Length(max=500)])
+    images = MultipleFileField(
+        'Your answer',
+        validators=[DataRequired(message='Please attach at least one image.')],
+    )
+    submit = SubmitField('Submit answer')
 
 
 class LessonPlanForm(FlaskForm):

@@ -9,7 +9,7 @@ endblock %} {% block content %}
     <p class="page-subtitle mb-0">
       <span class="badge bg-primary-50 text-primary me-1">{{ assignment.subject }}</span>
       <span class="badge bg-light text-dark border me-1">
-        {{ assignment.class_rel.class_name if assignment.class_rel else 'No class' }}
+        {{ assignment.class_name or (assignment.class_rel.class_name if assignment.class_rel else 'No class') }}
       </span>
       <span class="badge bg-light text-dark border">
         Out of {{ assignment.max_score | round(0) | int }}
@@ -22,7 +22,7 @@ endblock %} {% block content %}
       <i class="fa-solid fa-edit me-1"></i> Edit
     </a>
     <form method="post" action="{{ url_for('assignments.delete', id=assignment.id) }}"
-      onsubmit="return confirm('Delete this assignment and all its scores?');">
+      onsubmit="return confirm('Delete this assignment and everything uploaded to it?');">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <button class="btn btn-outline-danger">
         <i class="fa-solid fa-trash me-1"></i> Delete
@@ -56,6 +56,90 @@ endblock %} {% block content %}
       </div>
     </div>
 
+    {% if assignment.media %}
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header">
+        <i class="fa-solid fa-images me-2 text-primary"></i>Question images
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          {% for m in assignment.media %}
+          <div class="col-6 col-md-4 col-lg-3">
+            <div class="position-relative">
+              <a href="/uploads/{{ m.filename }}" target="_blank" rel="noopener">
+                <img src="/uploads/{{ m.filename }}" alt="Question image"
+                  class="img-fluid rounded w-100"
+                  style="height: 120px; object-fit: cover; border: 1px solid var(--border);" />
+              </a>
+              {% if is_poster %}
+              <form method="post" action="{{ url_for('assignments.delete_media', media_id=m.id) }}"
+                class="position-absolute top-0 end-0 m-1"
+                onsubmit="return confirm('Remove this image?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button class="btn btn-sm btn-danger rounded-circle"
+                  style="width: 26px; height: 26px; padding: 0;" aria-label="Remove image">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </form>
+
+    {% if not is_poster %}
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header"><i class="fa-solid fa-paper-plane me-2 text-primary"></i>Your answer</div>
+      <div class="card-body">
+        {% if submission and submission.files %}
+        <p class="small text-muted">
+          Submitted {{ submission.submitted_at | friendly_date }}.
+          Uploading again replaces the images below.
+        </p>
+        {% if submission.note %}
+        <div class="alert alert-info small">
+          <i class="fa-solid fa-comment-dots me-1"></i>{{ submission.note }}
+        </div>
+        {% endif %}
+        <div class="row g-3 mb-3">
+          {% for f in submission.files %}
+          <div class="col-6 col-md-4">
+            <a href="/uploads/{{ f.filename }}" target="_blank" rel="noopener">
+              <img src="/uploads/{{ f.filename }}" alt="Your answer"
+                class="img-fluid rounded w-100"
+                style="height: 150px; object-fit: cover; border: 1px solid var(--border);" />
+            </a>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data"
+          action="{{ url_for('assignments.submit', id=assignment.id) }}">
+          {{ submission_form.csrf_token }}
+          <div class="mb-3">
+            <label for="images" class="form-label">
+              {{ 'Replace with new images' if submission and submission.files else 'Upload your answer' }}
+            </label>
+            {{ submission_form.images(class="form-control", multiple=True) }}
+            <div class="form-text">
+              Photograph your work, or upload a scan. Select as many images as
+              you need - each under 4MB.
+            </div>
+            {% for e in submission_form.images.errors %}
+            <div class="text-danger small mt-1">{{ e }}</div>
+            {% endfor %}
+          </div>
+          <div class="mb-3">
+            <label for="note" class="form-label">Note (optional)</label>
+            {{ submission_form.note(class="form-control", rows="2", placeholder="Anything your teacher should know") }}
+          </div>
+          <button class="btn btn-brand">
+            <i class="fa-solid fa-cloud-arrow-up me-1"></i>
+            {{ 'Update answer' if submission and submission.files else 'Submit answer' }}
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+              {% endif %}
+
     {% if is_poster %}
     <div class="card border-0 shadow-sm">
       <div class="card-header d-flex justify-content-between align-items-center">
@@ -66,8 +150,8 @@ endblock %} {% block content %}
       </div>
       <div class="card-body">
         <p class="small text-muted">
-          Leave a row blank to skip that student. Tick <strong>Absent</strong> to record
-          a student who did not sit the assignment.
+          Leave a row blank to skip that student. Tick <strong>Absent</strong> to
+          record a student who did not sit the assignment.
         </p>
         <form method="post" action="{{ url_for('assignments.save_scores', id=assignment.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
@@ -76,18 +160,37 @@ endblock %} {% block content %}
               <thead>
                 <tr>
                   <th>Student</th>
-                  <th style="width: 120px">Score</th>
-                  <th style="width: 90px">Absent</th>
+                  <th style="width: 100px">Answer</th>
+                  <th style="width: 110px">Score</th>
+                  <th style="width: 80px">Absent</th>
                   <th>Feedback</th>
                 </tr>
               </thead>
               <tbody>
                 {% for s in students %}
                 {% set row = existing.get(s.id) %}
+                {% set sub = submissions.get(s.id) %}
                 <tr>
                   <td>
                     <div class="fw-semibold">{{ s.name }}</div>
                     <small class="text-muted">{{ s.student_public_id }}</small>
+                    {% if sub and sub.files %}
+                    <div class="mt-1">
+                      <a href="#submitted-{{ s.id }}" class="small text-decoration-none">
+                        <i class="fa-solid fa-image me-1"></i>{{ sub.files | length }} submitted
+                      </a>
+                    </div>
+                    {% endif %}
+                  </td>
+                  <td class="text-center">
+                    {% if sub and sub.files %}
+                    <a href="/uploads/{{ sub.files[0].filename }}" target="_blank" rel="noopener"
+                      class="btn btn-sm btn-outline-brand" title="Open answer">
+                      <i class="fa-solid fa-eye"></i>
+                    </a>
+                    {% else %}
+                    <span class="text-muted small">-</span>
+                    {% endif %}
                   </td>
                   <td>
                     <input type="number" step="0.5" min="0" max="{{ assignment.max_score }}"
@@ -105,7 +208,9 @@ endblock %} {% block content %}
                   </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="4" class="text-center text-muted py-4">No students in this class yet.</td></tr>
+                <tr><td colspan="5" class="text-center text-muted py-4">
+                  No students in this class yet.
+                </td></tr>
                 {% endfor %}
               </tbody>
             </table>
@@ -114,10 +219,56 @@ endblock %} {% block content %}
             <i class="fa-solid fa-floppy-disk me-1"></i> Save scores
           </button>
         </form>
+
+        {% if submissions %}
+        <hr />
+        <h6 class="mb-3"><i class="fa-solid fa-images me-2 text-primary"></i>Submitted answers</h6>
+        {% for s in students %}
+        {% set sub = submissions.get(s.id) %}
+        {% if sub and sub.files %}
+        <div class="mb-4" id="submitted-{{ s.id }}">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong class="small">{{ s.name }}</strong>
+            <form method="post" action="{{ url_for('assignments.delete_submission', submission_id=sub.id) }}"
+              onsubmit="return confirm('Delete this submission?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button class="btn btn-sm btn-outline-danger">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </form>
+          </div>
+          {% if sub.note %}
+          <p class="small text-muted mb-2">
+            <i class="fa-solid fa-comment-dots me-1"></i>{{ sub.note }}
+          </p>
+          {% endif %}
+          <div class="row g-2">
+            {% for f in sub.files %}
+            <div class="col-6 col-md-4 col-lg-3">
+              <a href="/uploads/{{ f.filename }}" target="_blank" rel="noopener">
+                <img src="/uploads/{{ f.filename }}" alt="{{ s.name }}'s answer"
+                  class="img-fluid rounded w-100"
+                  style="height: 130px; object-fit: cover; border: 1px solid var(--border);" />
+              </a>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        {% endif %}
       </div>
     </div>
     {% endif %}
   </div>
+
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
 
 
   <div class="col-lg-{% if is_poster %}5{% else %}4{% endif %}">
@@ -129,7 +280,9 @@ endblock %} {% block content %}
         {% set pct = (score_row.score / assignment.max_score * 100) | round(1) %}
         <div class="text-center py-3">
           <div class="display-4 fw-bold text-primary">{{ score_row.score | round(1) }}</div>
-          <div class="text-muted">out of {{ assignment.max_score | round(0) | int }} ({{ pct }}%)</div>
+          <div class="text-muted">
+            out of {{ assignment.max_score | round(0) | int }} ({{ pct }}%)
+          </div>
           {% if score_row.feedback %}
           <div class="alert alert-info mt-3 mb-0 text-start small">
             <i class="fa-solid fa-comment-dots me-1"></i>{{ score_row.feedback }}
@@ -146,13 +299,14 @@ endblock %} {% block content %}
         <div class="empty-state py-4">
           <i class="fa-solid fa-hourglass-half"></i>
           <h6>Not graded yet</h6>
-          <p class="mb-0">Your teacher has not entered a score for this assignment.</p>
+          <p class="mb-0">Your teacher has not entered a score yet.</p>
         </div>
         {% endif %}
       </div>
     </div>
     {% else %}
     {% set scored = existing.values() | selectattr('score', 'ne', none) | list | length %}
+    {% set handed_in = submissions.values() | selectattr('files') | list | length %}
     {% set total = students | length %}
     <div class="card border-0 shadow-sm">
       <div class="card-header"><i class="fa-solid fa-chart-simple me-2 text-primary"></i>Summary</div>
@@ -162,21 +316,25 @@ endblock %} {% block content %}
           <span class="text-muted">Students</span><strong>{{ total }}</strong>
         </div>
         <div class="d-flex justify-content-between mb-1">
-          <span class="text-muted">Scored</span><strong>{{ scored }}</strong>
+          <span class="text-muted">Answers in</span><strong>{{ handed_in }}</strong>
         </div>
         <div class="d-flex justify-content-between mb-3">
-          <span class="text-muted">Not yet recorded</span><strong>{{ total - scored }}</strong>
+          <span class="text-muted">Scored</span><strong>{{ scored }}</strong>
         </div>
         <div class="progress" style="height: 8px">
-          <div class="progress-bar bg-success" style="width: {{ (scored / total * 100) | round(0) }}%"></div>
+          <div class="progress-bar bg-success"
+            style="width: {{ (scored / total * 100) | round(0) }}%"></div>
         </div>
         {% if scored and scored < total %}
         <p class="small text-muted mt-3 mb-0">
-          Blank rows were left untouched, so you can come back and finish the rest later.
+          Blank rows were left untouched, so you can come back and finish the
+          rest later.
         </p>
         {% endif %}
         {% else %}
-        <p class="text-muted mb-0">No students in this class yet.</p>
+        <p class="text-muted mb-0">
+          This assignment has no class, so there are no students to score yet.
+        </p>
         {% endif %}
       </div>
     </div>

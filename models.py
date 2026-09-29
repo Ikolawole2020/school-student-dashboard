@@ -46,7 +46,12 @@ class Class(db.Model):
     teacher_id = db.Column(db.Integer, db.ForeignKey('teacher.id'), nullable=True)
     description = db.Column(db.String(200))
     teacher = db.relationship('Teacher', backref='class_teacher')
-    students = db.relationship('Student', backref='student_class', overlaps="class_rel")
+    # viewonly: student.class_id is written directly by the routes, and
+    # Student.class_rel is the relationship used for reading. Without
+    # viewonly, SQLAlchemy warns that two relationships both write the FK.
+    students = db.relationship(
+        'Student', backref='student_class', viewonly=True, overlaps="class_rel"
+    )
 
 class SeniorStudent(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -68,12 +73,19 @@ class Result(db.Model):
     student = db.relationship('Student', backref='results')
 
 class Assignment(db.Model):
-    """An assignment posted by a teacher for a specific class."""
+    """An assignment posted by a teacher.
+
+    class_name is free text so a teacher can post to any class they teach,
+    including one not yet created in the Class table. class_id is filled in
+    too when the typed name matches a real class, which keeps the student
+    "my assignments" view and class filtering working.
+    """
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(150), nullable=False)
     description = db.Column(db.Text)
     subject = db.Column(db.String(80), nullable=False)
-    class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=False)
+    class_name = db.Column(db.String(50))
+    class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=True)
     teacher_id = db.Column(db.Integer, db.ForeignKey('teacher.id'), nullable=True)
     due_date = db.Column(db.Date, nullable=True)
     max_score = db.Column(db.Float, default=100.0, nullable=False)
@@ -84,6 +96,56 @@ class Assignment(db.Model):
     scores = db.relationship(
         'AssignmentScore', backref='assignment', cascade='all, delete-orphan'
     )
+    media = db.relationship(
+        'AssignmentMedia', backref='assignment', cascade='all, delete-orphan'
+    )
+
+
+class AssignmentMedia(db.Model):
+    """Media attached to an assignment by the teacher.
+
+    Not every assignment can be explained in words - some need a photo of a
+    question on the board, a diagram, or a scanned sheet.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    assignment_id = db.Column(
+        db.Integer, db.ForeignKey('assignment.id'), nullable=False
+    )
+    filename = db.Column(db.String(200), nullable=False)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class AssignmentSubmission(db.Model):
+    """A student's answer to an assignment, uploaded as images.
+
+    One row per student per assignment; the images themselves live in
+    AssignmentSubmissionFile.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    assignment_id = db.Column(
+        db.Integer, db.ForeignKey('assignment.id'), nullable=False
+    )
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    note = db.Column(db.String(500))
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    assignment = db.relationship('Assignment', backref='submissions')
+    student = db.relationship('Student', backref='assignment_submissions')
+    files = db.relationship(
+        'AssignmentSubmissionFile', backref='submission',
+        cascade='all, delete-orphan',
+    )
+
+
+class AssignmentSubmissionFile(db.Model):
+    """One image in a student's submitted answer."""
+    id = db.Column(db.Integer, primary_key=True)
+    submission_id = db.Column(
+        db.Integer, db.ForeignKey('assignment_submission.id'), nullable=False
+    )
+    filename = db.Column(db.String(200), nullable=False)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class AssignmentScore(db.Model):
     """A single student's score for one assignment. Nullable so a student

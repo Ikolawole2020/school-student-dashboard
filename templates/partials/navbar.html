@@ -1,210 +1,144 @@
-<div
-  class="sidebar vh-100 position-fixed d-flex flex-column"
->
+<aside class="sidebar vh-100 position-fixed d-flex flex-column" id="mainSidebar"
+  aria-label="Main navigation">
+  <!-- ---------- brand ---------- -->
   <div class="sidebar-header p-4 border-bottom d-flex justify-content-between align-items-start">
-    <a
-      href="/"
-      class="d-flex align-items-center text-decoration-none text-white flex-grow-1"
-    >
-      <img
-        src="/static/img/logo.jpg"
-        alt="Starlight Model School"
-        height="46"
-        class="me-3 rounded-circle"
-      />
-      <div class="flex-grow-1">
-        <h5 class="mb-0 fw-bold">Starlight</h5>
-        <small style="color: #94a3b8">Model School</small>
-        <span class="d-block mt-2" style="height: 3px; width: 100%; max-width: 120px; border-radius: 999px; background: linear-gradient(90deg, var(--warning), #fde047);"></span>
+    <a href="/" class="d-flex align-items-center text-decoration-none text-white flex-grow-1">
+      <img src="/static/img/logo.jpg" alt="Starlight Model School" height="42"
+        class="me-3 rounded-circle" style="border:2px solid rgba(255,255,255,.18)" />
+      <div class="flex-grow-1 min-w-0">
+        <h5 class="mb-0 fw-bold text-white">Starlight</h5>
+        <small style="color:#94a3b8;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase">
+          Model School
+        </small>
+        <span class="d-block mt-2" style="height:3px;width:100%;max-width:110px;border-radius:999px;background:linear-gradient(90deg,var(--warning),#fde047)"></span>
       </div>
     </a>
-    <button class="btn-close btn-close-white d-lg-none" id="sidebarClose" aria-label="Close sidebar"></button>
+    <button class="btn-close btn-close-white d-lg-none" id="sidebarClose" aria-label="Close navigation"></button>
   </div>
 
-  <div class="sidebar-nav p-3 flex-grow-1 overflow-auto">
-    <!-- Public Links -->
-    <div class="mb-4">
-      <a
-        href="/"
-        class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/' %}active{% endif %}"
-      >
-        <i class="fa-solid fa-house me-3"></i>
-        <span>Home</span>
-      </a>
-      <a
-        href="/check-result"
-        class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/check-result' %}active{% endif %}"
-      >
-        <i class="fa-solid fa-magnifying-glass-chart me-3"></i>
-        <span>Check Result</span>
-      </a>
-      <a
-        href="/assignments/"
-        class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path.startswith('/assignments') %}active{% endif %}"
-      >
-        <i class="fa-solid fa-clipboard-list me-3"></i>
-        <span>Assignments</span>
-      </a>
-      {% if not current_user.is_authenticated %}
-      <a
-        href="/auth/register-student"
-        class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/auth/register-student' %}active{% endif %}"
-      >
-        <i class="fa-solid fa-user-plus me-3"></i>
-        <span>Register</span>
-      </a>
-      {% endif %}
+  <nav class="sidebar-nav p-3 flex-grow-1 overflow-auto">
+    <!-- ---------- general ---------- -->
+    <div class="nav-section">
+      <i class="fa-solid fa-compass"></i> General
     </div>
-
-    <!-- Auth Links -->
-    <div class="mb-4">
+    <div class="mb-3">
+      <a href="/"
+        class="nav-link {% if request.path == '/' %}active{% endif %}">
+        <i class="fa-solid fa-house"></i><span>Home</span>
+      </a>
       {% if current_user.is_authenticated %}
-      <a
-        href="/auth/logout"
-        class="nav-link d-flex align-items-center py-2 px-3 rounded"
-      >
-        <i class="fa-solid fa-right-from-bracket me-3"></i>
-        <span>Logout</span>
+      <a href="/assignments/"
+        class="nav-link {% if request.path.startswith('/assignments') %}active{% endif %}">
+        <i class="fa-solid fa-clipboard-list"></i><span>Assignment Hub</span>
       </a>
-      {% else %}
-      <a
-        href="/auth/login"
-        class="nav-link d-flex align-items-center py-2 px-3 rounded {% if request.path == '/auth/login' %}active{% endif %}"
-      >
-        <i class="fa-solid fa-right-to-bracket me-3"></i>
-        <span>Login</span>
+      <a href="/check-result"
+        class="nav-link {% if request.path == '/check-result' %}active{% endif %}">
+        <i class="fa-solid fa-magnifying-glass-chart"></i><span>Check Result</span>
       </a>
       {% endif %}
     </div>
 
-    <!-- Role-based Navigation -->
-    {% if current_user.is_authenticated %}
-    <div class="role-nav">
-      {% if current_user.role == 'admin' %}
-      <div class="mb-2">
-        <div class="px-3 py-1 mb-1" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.6px; color: #94a3b8;">
-          <i class="fa-solid fa-shield-halved me-2"></i>Admin Panel
-        </div>
-        <a
-          href="/admin/dashboard"
-          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/admin/dashboard' %}active{% endif %}"
-        >
-          <i class="fa-solid fa-tachometer-alt me-3"></i> Dashboard
-        </a>
-        <a
-          href="/admin/students"
-          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path.startswith('/admin/students') %}active{% endif %}"
-        >
-          <i class="fa-solid fa-users me-3"></i> Students
-        </a>
-        <a
-          href="/admin/teachers"
-          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path.startswith('/admin/teachers') %}active{% endif %}"
-        >
-          <i class="fa-solid fa-chalkboard-teacher me-3"></i> Teachers
-        </a>
-        <a
-          href="/admin/classes"
-          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path.startswith('/admin/classes') %}active{% endif %}"
-        >
-          <i class="fa-solid fa-school me-3"></i> Classes
-        </a>
-        <a
-          href="/admin/results"
-          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path.startswith('/admin/results') %}active{% endif %}"
-        >
-          <i class="fa-solid fa-clipboard-check me-3"></i> Results
-        </a>
-        <a
-          href="/admin/seniors"
-          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path.startswith('/admin/seniors') %}active{% endif %}"
-        >
-          <i class="fa-solid fa-graduation-cap me-3"></i> Seniors
-        </a>
-        <a
-          href="/lessons/"
-          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path.startswith('/lessons') %}active{% endif %}"
-        >
-          <i class="fa-solid fa-book-open me-3"></i> Lesson Plans
-        </a>
-        <a
-          href="/auth/change-password"
-          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/auth/change-password' %}active{% endif %}"
-        >
-          <i class="fa-solid fa-key me-3"></i> Change Password
-        </a>
-      </div>
-      {% elif current_user.role == 'student' %}
-      <div class="mb-2">
-        <div class="px-3 py-1 mb-1" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.6px; color: #94a3b8;">
-          <i class="fa-solid fa-user-graduate me-2"></i>Student Portal
-        </div>
-        <a
-          href="/student/dashboard"
-          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/student/dashboard' %}active{% endif %}"
-        >
-          <i class="fa-solid fa-tachometer-alt me-3"></i> Dashboard
-        </a>
-        <a
-          href="/student/profile"
-          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/student/profile' %}active{% endif %}"
-        >
-          <i class="fa-solid fa-user me-3"></i> Profile
-        </a>
-        <a
-          href="/student/results"
-          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/student/results' %}active{% endif %}"
-        >
-          <i class="fa-solid fa-chart-line me-3"></i> Results
-        </a>
-        <a
-          href="/auth/change-password"
-          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/auth/change-password' %}active{% endif %}"
-        >
-          <i class="fa-solid fa-key me-3"></i> Change Password
-        </a>
-      </div>
-      {% elif current_user.role == 'teacher' %}
-      <div class="mb-2">
-        <div class="px-3 py-1 mb-1" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.6px; color: #94a3b8;">
-          <i class="fa-solid fa-chalkboard-teacher me-2"></i>Teacher Portal
-        </div>
-        <a
-          href="/teacher/dashboard"
-          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/teacher/dashboard' %}active{% endif %}"
-        >
-          <i class="fa-solid fa-tachometer-alt me-3"></i> Dashboard
-        </a>
-        <a
-          href="/lessons/"
-          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path.startswith('/lessons') %}active{% endif %}"
-        >
-          <i class="fa-solid fa-book-open me-3"></i> Lesson Plans
-        </a>
-        <a
-          href="/auth/change-password"
-          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/auth/change-password' %}active{% endif %}"
-        >
-          <i class="fa-solid fa-key me-3"></i> Change Password
-        </a>
-      </div>
-      {% endif %}
+    <!-- ---------- role nav ---------- -->
+    {% if current_user.role == 'admin' %}
+    <div class="nav-section">
+      <i class="fa-solid fa-shield-halved"></i> Administration
+    </div>
+    <div class="mb-3">
+      <a href="/admin/dashboard" class="nav-link {% if request.path == '/admin/dashboard' %}active{% endif %}">
+        <i class="fa-solid fa-gauge-high"></i><span>Dashboard</span>
+      </a>
+      <a href="/admin/students" class="nav-link {% if request.path.startswith('/admin/students') %}active{% endif %}">
+        <i class="fa-solid fa-users"></i><span>Students</span>
+      </a>
+      <a href="/admin/teachers" class="nav-link {% if request.path.startswith('/admin/teachers') %}active{% endif %}">
+        <i class="fa-solid fa-chalkboard-user"></i><span>Staff</span>
+      </a>
+      <a href="/admin/classes" class="nav-link {% if request.path.startswith('/admin/classes') %}active{% endif %}">
+        <i class="fa-solid fa-school"></i><span>Classes</span>
+      </a>
+      <a href="/admin/results" class="nav-link {% if request.path.startswith('/admin/results') %}active{% endif %}">
+        <i class="fa-solid fa-clipboard-check"></i><span>Results</span>
+      </a>
+      <a href="/admin/seniors" class="nav-link {% if request.path.startswith('/admin/seniors') %}active{% endif %}">
+        <i class="fa-solid fa-graduation-cap"></i><span>Seniors</span>
+      </a>
+      <a href="/lessons/" class="nav-link {% if request.path.startswith('/lessons') %}active{% endif %}">
+        <i class="fa-solid fa-book-open"></i><span>Lesson Plans</span>
+      </a>
+    </div>
+
+
+    {% elif current_user.role == 'teacher' %}
+    <div class="nav-section">
+      <i class="fa-solid fa-chalkboard-user"></i> Teaching
+    </div>
+    <div class="mb-3">
+      <a href="/teacher/dashboard" class="nav-link {% if request.path == '/teacher/dashboard' %}active{% endif %}">
+        <i class="fa-solid fa-gauge-high"></i><span>Dashboard</span>
+      </a>
+      <a href="/lessons/" class="nav-link {% if request.path.startswith('/lessons') %}active{% endif %}">
+        <i class="fa-solid fa-book-open"></i><span>Lesson Plans</span>
+      </a>
+      <a href="/assignments/" class="nav-link {% if request.path.startswith('/assignments') %}active{% endif %}">
+        <i class="fa-solid fa-clipboard-list"></i><span>Assignment Hub</span>
+      </a>
+    </div>
+
+    {% elif current_user.role == 'student' %}
+    <div class="nav-section">
+      <i class="fa-solid fa-user-graduate"></i> My School
+    </div>
+    <div class="mb-3">
+      <a href="/student/dashboard" class="nav-link {% if request.path == '/student/dashboard' %}active{% endif %}">
+        <i class="fa-solid fa-gauge-high"></i><span>Dashboard</span>
+      </a>
+      <a href="/assignments/" class="nav-link {% if request.path.startswith('/assignments') %}active{% endif %}">
+        <i class="fa-solid fa-clipboard-list"></i><span>Assignments</span>
+      </a>
+      <a href="/student/results" class="nav-link {% if request.path == '/student/results' %}active{% endif %}">
+        <i class="fa-solid fa-chart-line"></i><span>My Results</span>
+      </a>
+      <a href="/student/profile" class="nav-link {% if request.path == '/student/profile' %}active{% endif %}">
+        <i class="fa-solid fa-user"></i><span>My Profile</span>
+      </a>
     </div>
     {% endif %}
-  </div>
 
-  <!-- User Info -->
+    <!-- ---------- account ---------- -->
+    <div class="nav-section">
+      <i class="fa-solid fa-gear"></i> Account
+    </div>
+    <div>
+      {% if current_user.is_authenticated %}
+      <a href="/auth/change-password" class="nav-link {% if request.path == '/auth/change-password' %}active{% endif %}">
+        <i class="fa-solid fa-key"></i><span>Change Password</span>
+      </a>
+      <a href="/auth/logout" class="nav-link">
+        <i class="fa-solid fa-right-from-bracket"></i><span>Log out</span>
+      </a>
+      {% else %}
+      <a href="/auth/login" class="nav-link {% if request.path == '/auth/login' %}active{% endif %}">
+        <i class="fa-solid fa-right-to-bracket"></i><span>Log in</span>
+      </a>
+      <a href="/auth/register-student" class="nav-link {% if request.path == '/auth/register-student' %}active{% endif %}">
+        <i class="fa-solid fa-user-plus"></i><span>Register</span>
+      </a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <!-- ---------- user footer ---------- -->
   {% if current_user.is_authenticated %}
   <div class="sidebar-footer p-3 border-top mt-auto">
-    <div class="d-flex align-items-center">
-      <div class="flex-grow-1">
-        <small style="color: #94a3b8">Logged in as</small>
-        <div class="fw-bold text-white">{{ current_user.email }}</div>
-        <span class="badge mt-1" style="background: var(--primary); color: #fff">
-          <i class="fa-solid fa-user me-1"></i>{{ current_user.role }}
-        </span>
+    <div class="d-flex align-items-center gap-2">
+      <span class="user-dot">{{ current_user.role[0] | upper }}</span>
+      <div class="flex-grow-1 min-w-0">
+        <small class="d-block" style="color:#94a3b8;font-size:.68rem">Signed in as</small>
+        <div class="fw-semibold text-white text-truncate" style="font-size:.85rem">
+          {{ current_user.email }}
+        </div>
       </div>
     </div>
   </div>
   {% endif %}
-</div>
+</aside>

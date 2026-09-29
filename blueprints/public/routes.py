@@ -64,6 +64,75 @@ def check_result():
     )
 
 
+@public_bp.route('/search')
+@login_required
+def search():
+    """Quick site search across students, teachers, classes and assignments.
+
+    Results are scoped to what the signed-in role may see: a student only
+    matches their own record, a teacher their class, an admin everything.
+    """
+    query = request.args.get('q', '').strip()
+    if len(query) < 2:
+        return render_template(
+            'public/search.html', query=query, students=[], teachers=[],
+            classes=[], assignments=[],
+        )
+
+    from models import Assignment, Teacher, Class
+    from utils import is_admin, is_teacher, current_student
+
+    like = f'%{query}%'
+    students = []
+    teachers = []
+    assignments = []
+
+    if is_admin():
+        students = Student.query.filter(
+            Student.name.ilike(like) | Student.student_public_id.ilike(like)
+        ).order_by(Student.name).limit(25).all()
+        teachers = Teacher.query.filter(
+            Teacher.name.ilike(like) | Teacher.staff_id.ilike(like)
+        ).order_by(Teacher.name).limit(25).all()
+        assignments = Assignment.query.filter(
+            Assignment.title.ilike(like) | Assignment.subject.ilike(like)
+        ).order_by(Assignment.created_at.desc()).limit(25).all()
+    elif is_teacher():
+        teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+        if teacher:
+            class_ids = [c.id for c in Class.query.filter_by(
+                teacher_id=teacher.id
+            ).all()]
+            if class_ids:
+                students = Student.query.filter(
+                    Student.class_id.in_(class_ids)
+                ).filter(
+                    Student.name.ilike(like)
+                    | Student.student_public_id.ilike(like)
+                ).order_by(Student.name).limit(25).all()
+            assignments = Assignment.query.filter(
+                Assignment.teacher_id == teacher.id
+            ).filter(
+                Assignment.title.ilike(like) | Assignment.subject.ilike(like)
+            ).order_by(Assignment.created_at.desc()).limit(25).all()
+    else:
+        me = current_student()
+        if me and (
+            me.name.lower() in query.lower()
+            or me.student_public_id.lower() in query.lower()
+        ):
+            students = [me]
+
+    classes = Class.query.filter(
+        Class.class_name.ilike(like)
+    ).order_by(Class.class_name).limit(25).all()
+
+    return render_template(
+        'public/search.html', query=query, students=students,
+        teachers=teachers, classes=classes, assignments=assignments,
+    )
+
+
 @public_bp.route('/uploads/<path:filename>')
 @login_required
 def uploads(filename):

@@ -1,10 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <title>{% block title %}Starlight Model School{% endblock %}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Bootstrap & Font Awesome & Inter Font -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="{% block description %}Starlight Model School - student management portal{% endblock %}" />
+    <meta name="theme-color" content="#059669" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -13,96 +21,125 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
       rel="stylesheet"
     />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
     <link href="/static/css/style.css" rel="stylesheet" />
+    <link href="/static/css/modern.css" rel="stylesheet" />
+
+    {# apply the saved theme before first paint to avoid a flash #}
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('smc-theme');
+          if (!saved) {
+            saved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-theme', saved);
+        } catch (e) {}
+      })();
+    </script>
     {% block head %}{% endblock %}
   </head>
+
   <body>
-    <!-- Mobile Toggle Button -->
-    <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle sidebar">
+    <a href="#main-content" class="visually-hidden-focusable">Skip to main content</a>
+
+    <button class="mobile-toggle" id="mobileToggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="mainSidebar">
       <i class="fa-solid fa-bars"></i>
     </button>
-
-    <!-- Sidebar Overlay -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <div class="d-flex">
       {% include 'partials/navbar.html' %}
-      <div class="flex-grow-1 main-content">
-        {% with messages = get_flashed_messages(with_categories=true) %} {% if
-        messages %} {% for category, message in messages %}
-        <div
-          class="alert alert-{{ category }} alert-dismissible fade show shadow-sm"
-          role="alert"
-        >
-          <i class="fa-solid fa-circle-info me-1"></i> {{ message }}
-          <button
-            type="button"
-            class="btn-close"
-            data-bs-dismiss="alert"
-          ></button>
+
+      <div class="flex-grow-1 main-content" id="main-content">
+        {# ---------- topbar ---------- #}
+        <div class="app-topbar no-print">
+          <div class="flex-grow-1 min-w-0">
+            <p class="topbar-title text-truncate">
+              {% block topbar_title %}{{ self.title() }}{% endblock %}
+            </p>
+            <p class="topbar-sub text-truncate d-none d-sm-block">
+              {% block topbar_sub %}Starlight Model School{% endblock %}
+            </p>
+          </div>
+
+          <div class="topbar-spacer"></div>
+
+          <form class="quick-search d-none d-md-block" role="search" method="get"
+            action="{{ url_for('public.search') }}">
+            <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+            <input type="search" name="q" placeholder="Search the site…"
+              value="{{ request.args.get('q', '') }}"
+              aria-label="Search the site" />
+          </form>
+
+          <button class="theme-toggle" id="themeToggle" type="button"
+            aria-label="Switch between light and dark mode" title="Toggle theme">
+            <i class="fa-solid fa-moon" id="themeIcon"></i>
+          </button>
+
+          {% if current_user.is_authenticated %}
+          <div class="dropdown">
+            <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2"
+              type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="user-dot">
+                {{ current_user.role[0] | upper }}
+              </span>
+              <span class="d-none d-lg-inline">{{ current_user.role | title }}</span>
+              <i class="fa-solid fa-chevron-down" style="font-size:.6rem"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0"
+              style="border-radius:var(--r-md);padding:.4rem;">
+              <li class="px-3 py-2">
+                <div class="fw-semibold small text-truncate">{{ current_user.email }}</div>
+                <span class="badge bg-primary mt-1">{{ current_user.role | title }}</span>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a class="dropdown-item rounded" href="/auth/change-password">
+                  <i class="fa-solid fa-key me-2"></i>Change password
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item rounded text-danger" href="/auth/logout">
+                  <i class="fa-solid fa-right-from-bracket me-2"></i>Log out
+                </a>
+              </li>
+            </ul>
+          </div>
+          {% else %}
+          <a href="/auth/login" class="btn btn-brand btn-sm">
+            <i class="fa-solid fa-right-to-bracket me-1"></i> Log in
+          </a>
+          {% endif %}
         </div>
-        {% endfor %} {% endif %} {% endwith %}
+
+        {# ---------- toasts replace the old inline alert blocks ---------- #}
+        <div class="toast-stack no-print" id="toastStack" aria-live="polite" aria-atomic="true"></div>
+
+        {# Flash messages render here server-side so they work without JS and
+           are picked up by app.js, which promotes them into the toast stack
+           and removes these fallbacks. #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-fallback no-print">
+          {% for category, message in messages %}
+          <div class="alert alert-{{ category if category in ['success','danger','warning','info'] else 'info' }}"
+            role="alert">
+            <i class="fa-solid fa-circle-info flex-shrink-0 mt-1"></i>
+            <div class="flex-grow-1">{{ message }}</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Dismiss"></button>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
 
         {% block content %}{% endblock %}
       </div>
     </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-      document.addEventListener('DOMContentLoaded', function () {
-        var mobileToggle = document.getElementById('mobileToggle');
-        var sidebarClose = document.getElementById('sidebarClose');
-        var sidebar = document.querySelector('.sidebar');
-        var overlay = document.getElementById('sidebarOverlay');
-
-        function closeSidebar() {
-          sidebar.classList.remove('show');
-          overlay.classList.remove('show');
-        }
-
-        function toggleSidebar() {
-          sidebar.classList.toggle('show');
-          overlay.classList.toggle('show');
-        }
-
-        if (mobileToggle && sidebar) {
-          mobileToggle.addEventListener('click', toggleSidebar);
-          overlay.addEventListener('click', closeSidebar);
-          if (sidebarClose) {
-            sidebarClose.addEventListener('click', closeSidebar);
-          }
-
-          var sidebarLinks = sidebar.querySelectorAll('a');
-          sidebarLinks.forEach(function (link) {
-            link.addEventListener('click', function () {
-              if (window.innerWidth < 992) {
-                setTimeout(function () {
-                  closeSidebar();
-                }, 100);
-              }
-            });
-          });
-
-          sidebar.addEventListener('click', function (e) {
-            if (window.innerWidth < 992) {
-              e.stopPropagation();
-            }
-          });
-
-          window.addEventListener('resize', function () {
-            if (window.innerWidth >= 992) {
-              closeSidebar();
-            }
-          });
-        }
-      });
-    </script>
+    <script src="/static/js/app.js"></script>
     {% block scripts %}{% endblock %}
   </body>
 </html>
-

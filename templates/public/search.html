@@ -1,0 +1,133 @@
+{% extends 'base.html' %} {% block title %}Search{% endblock %} {%
+block topbar_title %}Search{% endblock %} {% block topbar_sub %}
+Find students, staff, classes and assignments{% endblock %} {% block content %}
+{% set total = students|length + teachers|length + classes|length + assignments|length %}
+
+{% if query|length < 2 %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <div class="empty-state">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <h5>What are you looking for?</h5>
+      <p>Type at least two characters to search by name, ID or subject.</p>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <p class="mb-0 text-muted">
+    {{ total }} result{{ '' if total == 1 else 's' }} for
+    <strong>{{ query }}</strong>
+  </p>
+  <a href="{{ url_for('assignments.index') }}" class="btn btn-outline-brand btn-sm">
+    <i class="fa-solid fa-clipboard-list me-1"></i> Assignment hub
+  </a>
+</div>
+
+{% if students %}
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-header"><i class="fa-solid fa-user-graduate me-2 text-primary"></i>Students</div>
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <tbody>
+        {% for s in students %}
+        <tr>
+          <td style="width:56px">
+            {% if s.profile_picture and 'default' not in s.profile_picture %}
+            <img src="/uploads/{{ s.profile_picture }}" class="avatar-sm" alt="" />
+            {% else %}
+            <span class="user-dot">{{ s.name[0] | upper }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('admin.student_profile', id=s.id) }}" class="fw-semibold">
+              {{ s.name }}
+            </a>
+            <div class="small text-muted">{{ s.student_public_id }}</div>
+          </td>
+          <td class="text-end">
+            <span class="badge bg-light">
+              {{ s.class_rel.class_name if s.class_rel else 'No class' }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if teachers %}
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-header"><i class="fa-solid fa-chalkboard-user me-2 text-primary"></i>Staff</div>
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <tbody>
+        {% for t in teachers %}
+        <tr>
+          <td>
+            <span class="fw-semibold">{{ t.name }}</span>
+            <div class="small text-muted">{{ t.staff_id }} · {{ t.email }}</div>
+          </td>
+          <td class="text-end">
+            <span class="badge bg-light">{{ t.class_name or 'No class' }}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if classes %}
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-header"><i class="fa-solid fa-school me-2 text-primary"></i>Classes</div>
+  <div class="card-body d-flex flex-wrap gap-2">
+    {% for c in classes %}
+    <a href="{{ url_for('admin.class_detail', id=c.id) }}" class="badge bg-primary">
+      {{ c.class_name }}
+      {% if c.teacher %}<span class="ms-1 opacity-75">{{ c.teacher.name }}</span>{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if assignments %}
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-header"><i class="fa-solid fa-clipboard-list me-2 text-primary"></i>Assignments</div>
+  <div class="card-body">
+    <div class="list-group list-group-flush">
+      {% for a in assignments %}
+      <a href="{{ url_for('assignments.detail', id=a.id) }}"
+        class="list-group-item list-group-item-action border-0 px-0">
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="fw-semibold">{{ a.title }}</span>
+          <span class="badge bg-primary">{{ a.subject }}</span>
+        </div>
+        <small class="text-muted">
+          {{ a.class_name or (a.class_rel.class_name if a.class_rel else 'No class') }}
+          · due {{ a.due_date | friendly_date }}
+        </small>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if total == 0 %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <div class="empty-state">
+      <i class="fa-solid fa-face-frown"></i>
+      <h5>No matches for "{{ query }}"</h5>
+      <p>Try a shorter word, or check the spelling.</p>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

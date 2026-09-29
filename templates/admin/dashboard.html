@@ -1,0 +1,89 @@
+{% extends 'base.html' %} {% block title %}Dashboard - Admin{% endblock %} {%
+block content %}
+<div class="page-header fade-in">
+  <span class="accent-bar"></span>
+  <h2><i class="fa-solid fa-gauge-high me-2 text-primary"></i>Dashboard</h2>
+  <p class="page-subtitle">Manage your school's data and operations</p>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-3 col-md-6">
+    <div class="stat-card">
+      <div class="stat-icon bg-primary"><i class="fa-solid fa-users"></i></div>
+      <div>
+        <div class="stat-number">{{ counts.students }}</div>
+        <div class="stat-label">Students</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-md-6">
+    <div class="stat-card">
+      <div class="stat-icon bg-success"
+        ><i class="fa-solid fa-chalkboard-teacher"></i
+      ></div>
+      <div>
+        <div class="stat-number">{{ counts.teachers }}</div>
+        <div class="stat-label">Teachers</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-md-6">
+    <div class="stat-card">
+      <div class="stat-icon bg-warning"><i class="fa-solid fa-school"></i></div>
+      <div>
+        <div class="stat-number">{{ counts.classes }}</div>
+        <div class="stat-label">Classes</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-md-6">
+    <div class="stat-card">
+      <div class="stat-icon bg-info"
+        ><i class="fa-solid fa-graduation-cap"></i
+      ></div>
+      <div>
+        <div class="stat-number">{{ counts.seniors }}</div>
+        <div class="stat-label">Seniors</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header"><i class="fa-solid fa-bolt me-2 text-primary"></i>Quick Actions</div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4 col-lg-3">
+        <a href="/admin/students" class="btn btn-brand w-100 p-3">
+          <i class="fa-solid fa-users mb-2 d-block fa-xl"></i>
+          Manage Students
+        </a>
+      </div>
+      <div class="col-md-4 col-lg-3">
+        <a href="/admin/teachers" class="btn btn-outline-brand w-100 p-3">
+          <i class="fa-solid fa-chalkboard-teacher mb-2 d-block fa-xl"></i>
+          Manage Teachers
+        </a>
+      </div>
+      <div class="col-md-4 col-lg-3">
+        <a href="/admin/results" class="btn btn-outline-brand w-100 p-3">
+          <i class="fa-solid fa-clipboard-check mb-2 d-block fa-xl"></i>
+          Manage Results
+        </a>
+      </div>
+      <div class="col-md-4 col-lg-3">
+        <a href="/admin/classes" class="btn btn-brand-warning w-100 p-3 fw-bold text-dark">
+          <i class="fa-solid fa-school mb-2 d-block fa-xl"></i>
+          Manage Classes
+        </a>
+      </div>
+      <div class="col-md-4 col-lg-3">
+        <a href="/admin/seniors" class="btn btn-outline-brand w-100 p-3">
+          <i class="fa-solid fa-graduation-cap mb-2 d-block fa-xl"></i>
+          Senior Departments
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

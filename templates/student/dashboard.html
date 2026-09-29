@@ -1,0 +1,104 @@
+{% extends 'base.html' %} {% block title %}Student Dashboard{% endblock %} {%
+block content %}
+<div class="page-header fade-in">
+  <h2><i class="fa-solid fa-gauge-high me-2 text-primary"></i>Student Dashboard</h2>
+  <p class="page-subtitle">Welcome back! View your profile and results.</p>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center p-4">
+        {% if student.profile_picture and not
+        student.profile_picture.startswith('default-') %}
+        <img src="/uploads/{{ student.profile_picture }}" alt="Profile Picture" class="avatar-xl mb-3" />
+        {% elif student.profile_picture and 'default' in student.profile_picture %}
+        <img src="/static/img/default-profile.webp" alt="Profile Picture" class="avatar-xl mb-3" />
+        {% else %}
+        <div class="avatar-xl mx-auto mb-3 d-flex align-items-center justify-content-center text-white" style="background: var(--primary)">
+          <i class="fa-solid fa-user fa-3x"></i>
+        </div>
+        {% endif %}
+        <h3 class="fw-bold mb-1">{{ student.name }}</h3>
+        <p class="text-muted mb-1">Student ID: {{ student.student_public_id }}</p>
+        <p class="mb-1">Class: <span class="badge bg-primary">{{ student.class_rel.class_name if student.class_rel else 'Not assigned' }}</span></p>
+        <p class="mb-0 text-muted">Email: {{ student.email }}</p>
+        <div class="d-grid gap-2 mt-3">
+          <a href="/student/profile" class="btn btn-brand">
+            <i class="fa-solid fa-user me-1"></i> Edit Profile
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header"><i class="fa-solid fa-magnifying-glass-chart me-2 text-primary"></i>View Results</div>
+      <div class="card-body">
+        <form method="get" class="mb-4">
+          {{ form.csrf_token }}
+          <div class="row g-3">
+            <div class="col-md-5">
+              <label for="class_name" class="form-label">Class</label>
+              {{ form.class_name(class="form-select") }}
+            </div>
+            <div class="col-md-5">
+              <label for="term" class="form-label">Term</label>
+              {{ form.term(class="form-select") }}
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              {{ form.submit(class="btn btn-brand w-100") }}
+            </div>
+          </div>
+        </form>
+        {% if filtered_results %}
+        <hr />
+        <h5 class="text-center mb-3">
+          Results for {{ request.args.get('class_name') }} - {{ request.args.get('term') }}
+        </h5>
+        {% set total = namespace(value=0) %}
+        {% for r in filtered_results %}
+          {% set total.value = total.value + r.percentage %}
+        {% endfor %}
+        {% set overall_avg = total.value / filtered_results|length if filtered_results|length > 0 else 0 %}
+        <div class="alert alert-info text-center mb-3">
+          <strong>Overall Average: {{ "%.2f"|format(overall_avg) }}%</strong>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Subject</th>
+                <th>Test Score</th>
+                <th>Exam Score</th>
+                <th>Total Score</th>
+                <th>Percentage</th>
+                <th>Grade</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in filtered_results %}
+              <tr>
+                <td>{{ r.subject }}</td>
+                <td>{{ r.test_score }}</td>
+                <td>{{ r.exam_score }}</td>
+                <td>{{ r.total_score }}</td>
+                <td>{{ "%.2f"|format(r.percentage) }}%</td>
+                <td><span class="badge bg-primary">{{ r.grade }}</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <i class="fa-solid fa-chart-line"></i>
+          <h5>Select Class and Term</h5>
+          <p>Choose a class and term above to view your results.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

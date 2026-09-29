@@ -1,0 +1,108 @@
+{% extends 'base.html' %} {% block title %}Lesson Plans{% endblock %} {% block
+content %}
+<div class="page-header fade-in d-flex flex-wrap justify-content-between align-items-end gap-3">
+  <div>
+    <span class="accent-bar"></span>
+    <h2><i class="fa-solid fa-book-open me-2 text-primary"></i>Lesson Plans</h2>
+    <p class="page-subtitle">
+      {% if is_admin %}
+        Weekly plans from every teacher in the school.
+      {% else %}
+        Your weekly lesson plans. Only you can see these.
+      {% endif %}
+    </p>
+  </div>
+  <a href="{{ url_for('lessons.add') }}" class="btn btn-brand">
+    <i class="fa-solid fa-plus me-1"></i> New lesson plan
+  </a>
+</div>
+
+<form method="get" class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label small text-muted mb-1">Subject</label>
+        <input type="text" name="subject" value="{{ subject }}" class="form-control"
+          placeholder="e.g. Mathematics" list="subjectList" />
+        <datalist id="subjectList">
+          {% for s in subjects %}<option value="{{ s }}"></option>{% endfor %}
+        </datalist>
+      </div>
+      {% if is_admin and teachers|length > 1 %}
+      <div class="col-md-4">
+        <label class="form-label small text-muted mb-1">Teacher</label>
+        <select name="teacher_id" class="form-select">
+          <option value="">All teachers</option>
+          {% for t in teachers %}
+          <option value="{{ t.id }}" {% if teacher_filter == t.id|string %}selected{% endif %}>{{ t.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <div class="col-md-auto">
+        <button class="btn btn-brand w-100"><i class="fa-solid fa-filter me-1"></i> Filter</button>
+      </div>
+      {% if subject or teacher_filter %}
+      <div class="col-md-auto">
+        <a href="{{ url_for('lessons.index') }}" class="btn btn-outline-secondary w-100">Clear</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</form>
+
+{% if plans %}
+<div class="row g-3">
+  {% for p in plans %}
+  <div class="col-md-6 col-xl-4">
+    <div class="card border-0 shadow-sm h-100 lesson-card">
+      <div class="card-body d-flex flex-column">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="badge bg-primary-50 text-primary">{{ p.subject }}</span>
+          {% if p.week_of %}
+          <span class="badge bg-light text-dark border">Week of {{ p.week_of | friendly_date }}</span>
+          {% endif %}
+        </div>
+        <h5 class="mb-2">{{ p.title }}</h5>
+        <p class="small text-muted mb-2">
+          <i class="fa-solid fa-chalkboard-teacher me-1"></i>{{ p.teacher.name if p.teacher else 'Unknown' }}
+          {% if p.class_name %}
+          <span class="mx-1">|</span><i class="fa-solid fa-school me-1"></i>{{ p.class_name }}
+          {% elif p.class_rel %}
+          <span class="mx-1">|</span><i class="fa-solid fa-school me-1"></i>{{ p.class_rel.class_name }}
+          {% endif %}
+          {% if p.images %}
+          <span class="mx-1">|</span><i class="fa-solid fa-image me-1"></i>{{ p.images | length }}
+          {% endif %}
+        </p>
+        {% if p.objectives %}
+        <p class="small mb-3 lesson-excerpt">{{ p.objectives | truncate(110) }}</p>
+        {% endif %}
+        <div class="mt-auto d-flex gap-2">
+          <a href="{{ url_for('lessons.detail', id=p.id) }}" class="btn btn-sm btn-outline-brand flex-grow-1">
+            View
+          </a>
+          <a href="{{ url_for('lessons.edit', id=p.id) }}" class="btn btn-sm btn-outline-secondary">
+            <i class="fa-solid fa-edit"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <div class="empty-state">
+      <i class="fa-solid fa-book-open"></i>
+      <h5>No lesson plans yet</h5>
+      <p>{% if is_admin %}No teacher has filed a lesson plan yet.{% else %}Create your first weekly lesson plan to get started.{% endif %}</p>
+      <a href="{{ url_for('lessons.add') }}" class="btn btn-brand">
+        <i class="fa-solid fa-plus me-1"></i> New lesson plan
+      </a>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

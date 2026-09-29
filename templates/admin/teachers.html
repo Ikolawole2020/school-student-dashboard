@@ -1,0 +1,91 @@
+{% extends 'base.html' %} {% block title %}Teachers - Admin{% endblock %} {%
+block content %}
+<div class="page-header d-flex justify-content-between align-items-center fade-in">
+  <div>
+    <h2><i class="fa-solid fa-chalkboard-teacher me-2 text-primary"></i>Teachers</h2>
+    <p class="page-subtitle">Manage teacher records and assignments</p>
+  </div>
+  <a class="btn btn-brand" href="/admin/teachers/add"
+    ><i class="fa-solid fa-user-plus me-1"></i> Add Teacher</a
+  >
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Photo</th>
+          <th>Name</th>
+          <th>Staff ID</th>
+          <th>Class</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in teachers %}
+        <tr>
+          <td>
+            {% if t.profile_picture %}<img
+              src="/uploads/{{ t.profile_picture }}"
+              width="40"
+              height="40"
+              class="rounded-circle object-fit-cover"
+            />{% else %}<i class="fa-solid fa-user-tie fa-lg text-primary"></i>{% endif %}
+          </td>
+          <td class="fw-semibold">{{ t.name }}</td>
+          <td><span class="badge bg-light">{{ t.staff_id }}</span></td>
+          <td>{{ t.class_name or 'N/A' }}</td>
+          <td>{{ t.email }}</td>
+          <td>{{ t.phone or 'N/A' }}</td>
+          <td class="text-end">
+            <div class="d-inline-flex gap-1">
+              <a href="{{ url_for('admin.edit_teacher', id=t.id) }}" class="btn btn-action">
+                <i class="fa-solid fa-edit"></i> Edit
+              </a>
+              <form
+                method="post"
+                action="{{ url_for('admin.reset_teacher_password', id=t.id) }}"
+                class="d-inline"
+                onsubmit="return confirm('Reset this teacher\'s password? The new one will be shown once.')"
+              >
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button type="submit" class="btn btn-action" title="Reset password">
+                  <i class="fa-solid fa-key"></i>
+                </button>
+              </form>
+              <form
+                method="post"
+                action="{{ url_for('admin.delete_teacher', id=t.id) }}"
+                class="d-inline"
+                onsubmit="return confirm('Are you sure you want to delete this teacher?')"
+              >
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button type="submit" class="btn btn-action danger">
+                  <i class="fa-solid fa-trash"></i> Delete
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              <i class="fa-solid fa-chalkboard-teacher"></i>
+              <h5>No Teachers Found</h5>
+              <p>Start by adding your first teacher.</p>
+              <a class="btn btn-brand" href="/admin/teachers/add">
+                <i class="fa-solid fa-user-plus me-1"></i> Add Teacher
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

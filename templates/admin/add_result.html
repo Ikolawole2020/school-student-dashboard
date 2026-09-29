@@ -1,0 +1,213 @@
+{% extends 'base.html' %} {% block title %}Add Results - Admin{% endblock %} {%
+block content %}
+<div class="page-header fade-in">
+  <h2><i class="fa-solid fa-clipboard-check me-2 text-primary"></i>Add Student Results</h2>
+  <p class="page-subtitle">Enter student details and upload results for all subjects</p>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-4">
+    {% if subjects is none %}
+    <form method="post">
+      {{ form.csrf_token }}
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label for="student_public_id" class="form-label">Student ID</label>
+          {{ form.student_public_id(class="form-control", placeholder="Enter Student ID") }}
+        </div>
+        <div class="col-md-3">
+          <label for="class_name" class="form-label">Class</label>
+          {{ form.class_name(class="form-select") }}
+        </div>
+        <div class="col-md-3">
+          <label for="term" class="form-label">Term</label>
+          {{ form.term(class="form-select") }}
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          {{ form.submit(class="btn btn-brand w-100") }}
+        </div>
+      </div>
+    </form>
+    {% elif subjects|length == 0 %}
+    <div class="alert alert-info">
+      <h4 class="alert-heading"><i class="fa-solid fa-info-circle me-2"></i>No Subjects Available</h4>
+      <p class="mb-0">This student is in <strong>{{ student.class_rel.class_name if student.class_rel else 'N/A' }}</strong> class. There are no formal subjects assigned for this class level (e.g., Creche).</p>
+    </div>
+    <div class="mt-3">
+      <a href="{{ url_for('admin.manage_results') }}" class="btn btn-outline-secondary">Back to Results</a>
+    </div>
+    {% else %}
+    <div class="shaded-section mb-4">
+      <div class="d-flex align-items-center flex-wrap gap-3">
+        {% if student.profile_picture and not
+        student.profile_picture.startswith('default-') %}
+        <img src="/uploads/{{ student.profile_picture }}" width="72" height="72" class="rounded-circle" style="border: 3px solid var(--primary)" />
+        {% elif student.profile_picture and 'default' in student.profile_picture %}
+        <img src="/static/img/default-profile.webp" width="72" height="72" class="rounded-circle object-fit-cover" style="border: 3px solid var(--primary)" />
+        {% else %}
+        <div class="rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 72px; height: 72px; background: var(--primary)">
+          <i class="fa-solid fa-user fa-2x"></i>
+        </div>
+        {% endif %}
+        <div>
+          <h4 class="mb-1 fw-bold">{{ student.name }}</h4>
+          <p class="mb-1">
+            <strong>Class:</strong>
+            <span class="badge bg-primary">{{ student.class_rel.class_name if student.class_rel else 'N/A' }}</span>
+          </p>
+          <p class="mb-1">
+            <strong>Term:</strong>
+            <span class="badge bg-info">{{ term }}</span>
+          </p>
+          <p class="mb-0 text-muted"><strong>ID:</strong> {{ student.student_public_id }}</p>
+        </div>
+      </div>
+    </div>
+
+    <form method="post" action="{{ url_for('admin.save_results') }}">
+      {{ form.csrf_token }}
+      <input type="hidden" name="student_id" value="{{ student.id }}" />
+      <input type="hidden" name="class_name" value="{{ form.class_name.data }}" />
+      <input type="hidden" name="term" value="{{ form.term.data }}" />
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th><i class="fa-solid fa-book me-2"></i>Subject</th>
+              <th><i class="fa-solid fa-flask me-2"></i>Test Score (40%)</th>
+              <th><i class="fa-solid fa-clipboard-check me-2"></i>Exam Score (60%)</th>
+              <th><i class="fa-solid fa-calculator me-2"></i>Total</th>
+              <th><i class="fa-solid fa-percentage me-2"></i>Percentage</th>
+              <th><i class="fa-solid fa-graduation-cap me-2"></i>Grade</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for subject in subjects %}
+            <tr>
+              <td class="fw-semibold">{{ subject }}</td>
+              <td>
+                <input
+                  type="number"
+                  class="form-control score-input test-score"
+                  name="test_{{ subject.replace(' ', '_') }}"
+                  min="0" max="40" step="0.5"
+                  style="width: 90px"
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  class="form-control score-input exam-score"
+                  name="exam_{{ subject.replace(' ', '_') }}"
+                  min="0" max="60" step="0.5"
+                  style="width: 90px"
+                />
+              </td>
+              <td class="total-cell total-score fw-bold">0</td>
+              <td class="percentage-cell">0%</td>
+              <td class="grade-cell fw-bold text-danger">F</td>
+            </tr>
+            {% endfor %}
+            <tr class="table-light">
+              <td colspan="4" class="text-end fw-bold">Overall Average Percentage:</td>
+              <td class="fw-bold text-primary overall-percentage">0%</td>
+              <td class="fw-bold text-primary overall-grade">F</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4">
+        <button type="submit" class="btn btn-brand px-4">
+          <i class="fa-solid fa-save me-1"></i>Save All Results
+        </button>
+        <a href="{{ url_for('admin.manage_results') }}" class="btn btn-outline-secondary">Cancel</a>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const rows = document.querySelectorAll("tbody tr:not(.table-light)");
+    const overallPercentageCell = document.querySelector(".overall-percentage");
+    const overallGradeCell = document.querySelector(".overall-grade");
+
+    function hasValue(value) {
+      return value !== '';
+    }
+
+    function calculateOverall() {
+      let totalPercentage = 0;
+      let subjectCount = 0;
+
+      rows.forEach((row) => {
+        const testInput = row.querySelector(".test-score");
+        const examInput = row.querySelector(".exam-score");
+        if (hasValue(testInput.value) && hasValue(examInput.value)) {
+          const percentageText = row.querySelector(".percentage-cell").textContent;
+          const percentage = parseFloat(percentageText.replace("%", "")) || 0;
+          totalPercentage += percentage;
+          subjectCount++;
+        }
+      });
+
+      const averagePercentage = subjectCount > 0 ? totalPercentage / subjectCount : 0;
+      let overallGrade = "F";
+      if (averagePercentage >= 70) overallGrade = "A";
+      else if (averagePercentage >= 60) overallGrade = "B";
+      else if (averagePercentage >= 50) overallGrade = "C";
+      else if (averagePercentage >= 45) overallGrade = "D";
+      else overallGrade = "F";
+
+      overallPercentageCell.textContent = averagePercentage.toFixed(1) + "%";
+      overallGradeCell.textContent = overallGrade;
+      overallGradeCell.className = "fw-bold text-primary";
+      if (overallGrade === "A") overallGradeCell.classList.add("text-success");
+      else if (overallGrade === "B" || overallGrade === "C") overallGradeCell.classList.add("text-warning");
+      else overallGradeCell.classList.add("text-danger");
+    }
+
+    rows.forEach((row) => {
+      const testInput = row.querySelector(".test-score");
+      const examInput = row.querySelector(".exam-score");
+      const totalCell = row.querySelector(".total-score");
+      const percentageCell = row.querySelector(".percentage-cell");
+
+      function calculate() {
+        const test = parseFloat(testInput.value) || 0;
+        const exam = parseFloat(examInput.value) || 0;
+        const total = test + exam;
+        const percentage = (total / 100) * 100;
+
+        totalCell.textContent = total.toFixed(1);
+        percentageCell.textContent = percentage.toFixed(1) + "%";
+
+        let grade = "F";
+        if (percentage >= 70) grade = "A";
+        else if (percentage >= 60) grade = "B";
+        else if (percentage >= 50) grade = "C";
+        else if (percentage >= 45) grade = "D";
+        else grade = "F";
+
+        const gradeCell = row.querySelector(".grade-cell");
+        gradeCell.textContent = grade;
+        percentageCell.className = "percentage-cell";
+        if (percentage >= 70) percentageCell.classList.add("text-success", "fw-bold");
+        else if (percentage >= 50) percentageCell.classList.add("text-warning", "fw-bold");
+        else percentageCell.classList.add("text-danger", "fw-bold");
+
+        gradeCell.className = "grade-cell fw-bold";
+        if (grade === "A") gradeCell.classList.add("text-success");
+        else if (grade === "B" || grade === "C") gradeCell.classList.add("text-warning");
+        else gradeCell.classList.add("text-danger");
+
+        calculateOverall();
+      }
+
+      testInput.addEventListener("input", calculate);
+      examInput.addEventListener("input", calculate);
+    });
+  });
+</script>
+{% endblock %}

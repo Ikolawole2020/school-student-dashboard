@@ -1,0 +1,85 @@
+{% extends 'base.html' %} {% block title %}Manage Results - Admin{% endblock %}
+{% block content %}
+<div class="page-header fade-in">
+  <h2><i class="fa-solid fa-clipboard-check me-2 text-primary"></i>Manage Results</h2>
+  <p class="page-subtitle">Select a student to add or view their results</p>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <form method="get">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <div class="row g-2">
+        <div class="col-md-10">
+          <input
+            type="text"
+            name="search"
+            class="form-control"
+            placeholder="Search by student name or ID..."
+            value="{{ search }}"
+          />
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-brand w-100">
+            <i class="fa-solid fa-search me-1"></i> Search
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Student ID</th>
+          <th>Class</th>
+          <th>Email</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for student in students %}
+        <tr>
+          <td class="fw-semibold">{{ student.name }}</td>
+          <td><span class="badge bg-light">{{ student.student_public_id }}</span></td>
+          <td>
+            <span class="badge bg-primary">
+              {{ student.class_rel.class_name if student.class_rel else 'N/A' }}
+            </span>
+          </td>
+          <td>{{ student.email }}</td>
+          <td class="text-end text-nowrap">
+            <a
+              href="{{ url_for('admin.add_result', student_id=student.id) }}"
+              class="btn btn-action success"
+            >
+              <i class="fa-solid fa-plus me-1"></i> Add Results
+            </a>
+            <a
+              href="{{ url_for('admin.student_profile', id=student.id) }}"
+              class="btn btn-action info"
+            >
+              <i class="fa-solid fa-eye me-1"></i> View
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5">
+            <div class="empty-state">
+              <i class="fa-solid fa-clipboard-list"></i>
+              <h5>No Students Found</h5>
+              <p>No students match your search.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

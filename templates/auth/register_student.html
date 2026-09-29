@@ -1,0 +1,151 @@
+{% extends 'base.html' %} {% block title %}Register - Starlight Model School{%
+endblock %} {% block content %}
+<div class="d-flex align-items-center justify-content-center py-4" style="min-height: 80vh;">
+  <div class="card border-0 shadow" style="max-width: 640px; width: 100%; border-radius: 16px; overflow: hidden;">
+    <div
+      class="text-center text-white p-4"
+      style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);"
+    >
+      <img
+        src="/static/img/logo.jpg"
+        alt="Starlight Model School"
+        height="56"
+        class="mb-3"
+        style="border-radius: 10px"
+      />
+<span class="accent-bar"></span>
+      <h3 class="mb-1 fw-bold">Join Starlight Model School</h3>
+      <p class="mb-0 opacity-75">Create your student account</p>
+    </div>
+    <div class="card-body p-4">
+      <form method="post" enctype="multipart/form-data" id="registerForm">
+        {{ form.csrf_token }}
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="name" class="form-label">Full Name</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+              {{ form.name(class="form-control border-start-0", placeholder="Enter your full name") }}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label for="student_public_id" class="form-label">Student ID (Auto-generated)</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fa-solid fa-id-card"></i></span>
+              {{ form.student_public_id(class="form-control border-start-0", readonly=True) }}
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label for="dob" class="form-label">Date of Birth</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fa-solid fa-calendar"></i></span>
+              {{ form.dob(class="form-control border-start-0", placeholder="Select date of birth") }}
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label for="gender" class="form-label">Gender</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fa-solid fa-venus-mars"></i></span>
+              {{ form.gender(class="form-select border-start-0") }}
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label for="class_name" class="form-label">Class</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fa-solid fa-graduation-cap"></i></span>
+              {{ form.class_name(class="form-select border-start-0") }}
+            </div>
+          </div>
+          <div class="col-md-4 department-field" id="departmentField">
+            <label for="department" class="form-label">Department</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fa-solid fa-building"></i></span>
+              {{ form.department(class="form-select border-start-0") }}
+            </div>
+          </div>
+          <div class="col-12">
+            <label for="email" class="form-label">Email Address</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
+              {{ form.email(class="form-control border-start-0", placeholder="Enter your email") }}
+            </div>
+          </div>
+          <div class="col-12">
+            <label for="guardian_phone" class="form-label">Guardian Phone Number</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fa-solid fa-user-shield"></i></span>
+              {{ form.guardian_phone(class="form-control border-start-0", placeholder="08012345678") }}
+            </div>
+            {% for e in form.guardian_phone.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="col-md-6">
+            <label for="password" class="form-label">Password</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+              {{ form.password(class="form-control border-start-0", placeholder="Create a password") }}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label for="profile_picture" class="form-label">Profile Picture</label>
+            {{ form.profile_picture(class="form-control") }}
+          </div>
+          <div class="col-12 mt-3">
+            {{ form.submit(class="btn btn-brand w-100 py-2 fw-semibold") }}
+          </div>
+        </div>
+      </form>
+      <div class="text-center mt-4">
+        <p class="mb-2 text-muted">Already have an account?</p>
+        <a href="/auth/login" class="fw-semibold text-decoration-none">
+          <i class="fa-solid fa-sign-in-alt me-1"></i>Sign In
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const nameInput = document.getElementById("name");
+    const studentIdInput = document.getElementById("student_public_id");
+    const classSelect = document.getElementById("class_name");
+    const departmentField = document.getElementById("departmentField");
+
+    function generateStudentId() {
+      if (nameInput && nameInput.value) {
+        const generatedId = nameInput.value
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, "");
+        if (studentIdInput) {
+          studentIdInput.value = generatedId;
+        }
+      }
+    }
+
+    function toggleDepartment() {
+      if (classSelect && classSelect.value.startsWith("SS")) {
+        departmentField.style.display = "block";
+      } else {
+        departmentField.style.display = "none";
+        const departmentSelect = document.getElementById("department");
+        if (departmentSelect) {
+          departmentSelect.value = "";
+        }
+      }
+    }
+
+    if (nameInput) {
+      nameInput.addEventListener("input", generateStudentId);
+      nameInput.addEventListener("blur", generateStudentId);
+    }
+
+    if (classSelect) {
+      classSelect.addEventListener("change", toggleDepartment);
+      toggleDepartment();
+    }
+
+    generateStudentId();
+  });
+</script>
+{% endblock %}

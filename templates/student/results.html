@@ -1,0 +1,58 @@
+{% extends 'base.html' %} {% block title %}My Results - Student{% endblock %}
+{% block content %}
+<div class="page-header fade-in">
+  <h2><i class="fa-solid fa-chart-line me-2 text-primary"></i>My Results</h2>
+  <p class="page-subtitle">Student ID: {{ student.student_public_id }}</p>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-4">
+    {% if results %}
+    {% set total = namespace(value=0) %}
+    {% for r in results %}
+      {% set total.value = total.value + r.percentage %}
+    {% endfor %}
+    {% set overall_avg = total.value / results|length if results|length > 0 else 0 %}
+    <div class="alert alert-info text-center mb-3">
+      <strong>Overall Average: {{ "%.2f"|format(overall_avg) }}%</strong>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Subject</th>
+            <th>Class</th>
+            <th>Term</th>
+            <th>Test Score</th>
+            <th>Exam Score</th>
+            <th>Total Score</th>
+            <th>Percentage</th>
+            <th>Grade</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for result in results %}
+          <tr>
+            <td class="fw-semibold">{{ result.subject }}</td>
+            <td>{{ result.class_name }}</td>
+            <td>{{ result.term }}</td>
+            <td>{{ result.test_score }}</td>
+            <td>{{ result.exam_score }}</td>
+            <td>{{ result.total_score }}</td>
+            <td>{{ "%.2f"|format(result.percentage) }}%</td>
+            <td><span class="badge bg-primary">{{ result.grade }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="fa-solid fa-chart-line"></i>
+      <h5>No Results Found</h5>
+      <p>Your academic results will appear here once they are available.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

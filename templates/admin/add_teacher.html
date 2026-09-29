@@ -1,0 +1,61 @@
+{% extends 'base.html' %} {% block title %}Add Teacher - Admin{% endblock %} {%
+block content %}
+<div class="d-flex justify-content-center py-4">
+  <div class="card border-0 shadow w-100" style="max-width: 520px; border-radius: 16px; overflow: hidden;">
+    <div class="card-body p-4">
+      <div class="page-header mb-4">
+        <span class="accent-bar"></span>
+        <h3><i class="fa-solid fa-chalkboard-user me-2 text-primary"></i>Add New Teacher</h3>
+        <p class="page-subtitle">Just name and phone number are required</p>
+      </div>
+
+      <form method="post">
+        {{ form.csrf_token }}
+        <div class="row g-3">
+          <div class="col-12">
+            <label for="name" class="form-label">Full Name</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+              {{ form.name(class="form-control border-start-0", placeholder="Enter full name") }}
+            </div>
+            {% for e in form.name.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="col-12">
+            <label for="phone" class="form-label">Phone Number</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
+              {{ form.phone(class="form-control border-start-0", placeholder="08012345678") }}
+            </div>
+            {% for e in form.phone.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="col-12">
+            <label for="class_name" class="form-label">Class <span class="text-muted">(optional)</span></label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fa-solid fa-school"></i></span>
+              {{ form.class_name(class="form-select border-start-0") }}
+            </div>
+            <div class="form-text">
+              Only teaching staff need a class. Leave this blank for non-teaching
+              staff and assign one later from the teacher's edit page.
+            </div>
+            {% for e in form.class_name.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+
+        <div class="alert alert-info mt-4 mb-0 small">
+          <i class="fa-solid fa-circle-info me-1"></i>
+          The staff ID, email address and a temporary password are generated
+          automatically and shown to you once, right after you save.
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+          {{ form.submit(class="btn btn-brand px-4") }}
+          <a href="{{ url_for('admin.teachers') }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

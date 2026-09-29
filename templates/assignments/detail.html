@@ -1,0 +1,186 @@
+{% extends 'base.html' %} {% block title %}{{ assignment.title }}{%
+endblock %} {% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <a href="{{ url_for('assignments.index') }}" class="text-decoration-none small">
+      <i class="fa-solid fa-arrow-left me-1"></i>All assignments
+    </a>
+    <h2 class="mt-2 mb-1">{{ assignment.title }}</h2>
+    <p class="page-subtitle mb-0">
+      <span class="badge bg-primary-50 text-primary me-1">{{ assignment.subject }}</span>
+      <span class="badge bg-light text-dark border me-1">
+        {{ assignment.class_rel.class_name if assignment.class_rel else 'No class' }}
+      </span>
+      <span class="badge bg-light text-dark border">
+        Out of {{ assignment.max_score | round(0) | int }}
+      </span>
+    </p>
+  </div>
+  {% if is_poster %}
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('assignments.edit', id=assignment.id) }}" class="btn btn-outline-brand">
+      <i class="fa-solid fa-edit me-1"></i> Edit
+    </a>
+    <form method="post" action="{{ url_for('assignments.delete', id=assignment.id) }}"
+      onsubmit="return confirm('Delete this assignment and all its scores?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button class="btn btn-outline-danger">
+        <i class="fa-solid fa-trash me-1"></i> Delete
+      </button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-{% if is_poster %}7{% else %}8{% endif %}">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header"><i class="fa-solid fa-align-left me-2 text-primary"></i>Instructions</div>
+      <div class="card-body">
+        {% if assignment.description %}
+        <p style="white-space: pre-line">{{ assignment.description }}</p>
+        {% else %}
+        <p class="text-muted mb-0">No instructions were provided.</p>
+        {% endif %}
+        <hr />
+        <div class="row small text-muted g-2">
+          <div class="col-sm-6">
+            <i class="fa-solid fa-calendar me-1"></i>Due:
+            {{ assignment.due_date | friendly_date }}
+          </div>
+          <div class="col-sm-6">
+            <i class="fa-solid fa-chalkboard-teacher me-1"></i>
+            {{ assignment.teacher.name if assignment.teacher else 'School admin' }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if is_poster %}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fa-solid fa-users me-2 text-primary"></i>Record scores</span>
+        <span class="badge bg-light text-dark border">
+          {{ students | length }} student{{ '' if students | length == 1 else 's' }}
+        </span>
+      </div>
+      <div class="card-body">
+        <p class="small text-muted">
+          Leave a row blank to skip that student. Tick <strong>Absent</strong> to record
+          a student who did not sit the assignment.
+        </p>
+        <form method="post" action="{{ url_for('assignments.save_scores', id=assignment.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th style="width: 120px">Score</th>
+                  <th style="width: 90px">Absent</th>
+                  <th>Feedback</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in students %}
+                {% set row = existing.get(s.id) %}
+                <tr>
+                  <td>
+                    <div class="fw-semibold">{{ s.name }}</div>
+                    <small class="text-muted">{{ s.student_public_id }}</small>
+                  </td>
+                  <td>
+                    <input type="number" step="0.5" min="0" max="{{ assignment.max_score }}"
+                      name="score_{{ s.id }}" class="form-control form-control-sm"
+                      value="{{ row.score if row and row.score is not none else '' }}"
+                      placeholder="--" />
+                  </td>
+                  <td class="text-center">
+                    <input type="checkbox" name="absent_{{ s.id }}" class="form-check-input" />
+                  </td>
+                  <td>
+                    <input type="text" name="feedback_{{ s.id }}" class="form-control form-control-sm"
+                      value="{{ row.feedback if row and row.feedback else '' }}"
+                      placeholder="Optional comment" maxlength="300" />
+                  </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-center text-muted py-4">No students in this class yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <button class="btn btn-brand mt-3">
+            <i class="fa-solid fa-floppy-disk me-1"></i> Save scores
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+
+  <div class="col-lg-{% if is_poster %}5{% else %}4{% endif %}">
+    {% if not is_poster %}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header"><i class="fa-solid fa-chart-simple me-2 text-primary"></i>Your result</div>
+      <div class="card-body">
+        {% if score_row and score_row.score is not none %}
+        {% set pct = (score_row.score / assignment.max_score * 100) | round(1) %}
+        <div class="text-center py-3">
+          <div class="display-4 fw-bold text-primary">{{ score_row.score | round(1) }}</div>
+          <div class="text-muted">out of {{ assignment.max_score | round(0) | int }} ({{ pct }}%)</div>
+          {% if score_row.feedback %}
+          <div class="alert alert-info mt-3 mb-0 text-start small">
+            <i class="fa-solid fa-comment-dots me-1"></i>{{ score_row.feedback }}
+          </div>
+          {% endif %}
+        </div>
+        {% elif score_row %}
+        <div class="empty-state py-4">
+          <i class="fa-solid fa-user-slash"></i>
+          <h6>Marked absent</h6>
+          <p class="mb-0">You were not recorded for this assignment.</p>
+        </div>
+        {% else %}
+        <div class="empty-state py-4">
+          <i class="fa-solid fa-hourglass-half"></i>
+          <h6>Not graded yet</h6>
+          <p class="mb-0">Your teacher has not entered a score for this assignment.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    {% set scored = existing.values() | selectattr('score', 'ne', none) | list | length %}
+    {% set total = students | length %}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header"><i class="fa-solid fa-chart-simple me-2 text-primary"></i>Summary</div>
+      <div class="card-body">
+        {% if total %}
+        <div class="d-flex justify-content-between mb-1">
+          <span class="text-muted">Students</span><strong>{{ total }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-1">
+          <span class="text-muted">Scored</span><strong>{{ scored }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-3">
+          <span class="text-muted">Not yet recorded</span><strong>{{ total - scored }}</strong>
+        </div>
+        <div class="progress" style="height: 8px">
+          <div class="progress-bar bg-success" style="width: {{ (scored / total * 100) | round(0) }}%"></div>
+        </div>
+        {% if scored and scored < total %}
+        <p class="small text-muted mt-3 mb-0">
+          Blank rows were left untouched, so you can come back and finish the rest later.
+        </p>
+        {% endif %}
+        {% else %}
+        <p class="text-muted mb-0">No students in this class yet.</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

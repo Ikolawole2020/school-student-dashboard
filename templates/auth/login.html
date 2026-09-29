@@ -1,0 +1,57 @@
+{% extends 'base.html' %} {% block title %}Login - Starlight Model School{%
+endblock %} {% block content %}
+<div class="d-flex align-items-center justify-content-center" style="min-height: 80vh;">
+  <div class="card border-0 shadow" style="max-width: 440px; width: 100%; border-radius: 16px; overflow: hidden;">
+    <div
+      class="text-center text-white p-4"
+      style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);"
+    >
+      <img
+        src="/static/img/logo.jpg"
+        alt="Starlight Model School"
+        height="56"
+        class="mb-3"
+        style="border-radius: 10px"
+      />
+<span class="accent-bar"></span>
+      <h3 class="mb-1 fw-bold">Welcome Back</h3>
+      <p class="mb-0 opacity-75">Sign in to your Starlight account</p>
+    </div>
+    <div class="card-body p-4">
+      <form method="post">
+        {{ form.csrf_token }}
+
+        <div class="mb-3">
+          <label for="email" class="form-label">Email Address</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
+            {{ form.email(class="form-control border-start-0", placeholder="Enter your email") }}
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label for="password" class="form-label">Password</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+            {{ form.password(class="form-control border-start-0", placeholder="Enter your password") }}
+          </div>
+        </div>
+
+        <div class="mb-3">
+          {{ form.submit(class="btn btn-brand w-100 py-2 fw-semibold") }}
+        </div>
+      </form>
+
+      <div class="text-center">
+        <p class="mb-2 text-muted">New to Starlight Model School?</p>
+        <a
+          href="/auth/register-student"
+          class="fw-semibold text-decoration-none"
+        >
+          <i class="fa-solid fa-user-plus me-1"></i>Create Student Account
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends 'base.html' %} {% block title %}Add Student - Admin{% endblock %} {%
+block content %}
+<div class="d-flex justify-content-center py-4">
+  <div class="card border-0 shadow w-100" style="max-width: 680px; border-radius: 16px; overflow: hidden;">
+    <div class="card-body p-4">
+      <div class="page-header mb-4">
+        <h3><i class="fa-solid fa-user-plus me-2 text-primary"></i>Add New Student</h3>
+        <p class="page-subtitle">Enter student details to add them to the system</p>
+      </div>
+      <form method="post" enctype="multipart/form-data">
+        {{ form.csrf_token }}
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="name" class="form-label">Full Name</label>
+            {{ form.name(class="form-control", placeholder="Enter full name") }}
+          </div>
+          <div class="col-md-6">
+            <label for="student_public_id" class="form-label">Student ID (Auto-generated)</label>
+            {{ form.student_public_id(class="form-control", placeholder="Will be auto-generated from name") }}
+          </div>
+        </div>
+        <div class="row g-3 mt-1">
+          <div class="col-md-3">
+            <label for="dob" class="form-label">Date of Birth</label>
+            {{ form.dob(class="form-control") }}
+          </div>
+          <div class="col-md-3">
+            <label for="gender" class="form-label">Gender</label>
+            {{ form.gender(class="form-select") }}
+          </div>
+          <div class="col-md-3">
+            <label for="class_name" class="form-label">Class</label>
+            {{ form.class_name(class="form-select") }}
+          </div>
+          <div class="col-md-3">
+            <label for="department" class="form-label">Department (SS only)</label>
+            {{ form.department(class="form-select") }}
+          </div>
+        </div>
+        <div class="row g-3 mt-1">
+          <div class="col-md-6">
+            <label for="email" class="form-label">Email (Auto-generated)</label>
+            {{ form.email(class="form-control", placeholder="Will be auto-generated as name@smc.com") }}
+          </div>
+          <div class="col-md-6">
+            <label for="guardian_phone" class="form-label">Guardian Phone Number</label>
+            {{ form.guardian_phone(class="form-control", placeholder="08012345678") }}
+            {% for e in form.guardian_phone.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+        <div class="row g-3 mt-1">
+          <div class="col-md-6">
+            <label for="password" class="form-label">Initial Password</label>
+            {{ form.password(class="form-control", placeholder="Leave blank to auto-generate") }}
+          </div>
+        </div>
+        <div class="mt-3">
+          <label for="profile_picture" class="form-label">Profile Picture</label>
+          {{ form.profile_picture(class="form-control") }}
+        </div>
+        <div class="d-flex gap-2 mt-4">
+          {{ form.submit(class="btn btn-brand px-4") }}
+          <a href="{{ url_for('admin.students') }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

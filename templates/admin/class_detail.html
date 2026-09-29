@@ -1,0 +1,96 @@
+{% extends "base.html" %} {% block title %}Class Details - Admin{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center fade-in">
+  <div>
+    <h2><i class="fa-solid fa-school me-2 text-primary"></i>Class: {{ cls.class_name }}</h2>
+    <p class="page-subtitle">Class information and enrolled students</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('admin.edit_class', id=cls.id) }}" class="btn btn-outline-brand">
+      <i class="fa-solid fa-edit me-1"></i>Edit Class
+    </a>
+    <a href="{{ url_for('admin.classes') }}" class="btn btn-outline-secondary">
+      <i class="fa-solid fa-arrow-left me-1"></i>Back
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header"><i class="fa-solid fa-circle-info me-2 text-primary"></i>Class Information</div>
+      <div class="card-body">
+        <p class="mb-2"><strong>Class Name:</strong> {{ cls.class_name }}</p>
+        {% if cls.teacher %}
+        <p class="mb-2"><strong>Class Teacher:</strong> {{ cls.teacher.name }}</p>
+        {% else %}
+        <p class="mb-2"><strong>Class Teacher:</strong> <span class="text-muted">Not assigned</span></p>
+        {% endif %}
+        {% if cls.description %}
+        <p class="mb-2"><strong>Description:</strong> {{ cls.description }}</p>
+        {% endif %}
+        <p class="mb-0"><strong>Number of Students:</strong> {{ students|length }}</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header"><i class="fa-solid fa-users me-2 text-primary"></i>Students in this Class</div>
+      <div class="card-body">
+        {% if students %}
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Student ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in students %}
+              <tr>
+                <td><span class="badge bg-light">{{ student.student_public_id }}</span></td>
+                <td class="fw-semibold">{{ student.name }}</td>
+                <td>{{ student.email }}</td>
+                <td class="text-end text-nowrap">
+                  <a
+                    href="{{ url_for('admin.student_profile', id=student.id) }}"
+                    class="btn btn-action info me-1"
+                    ><i class="fa-solid fa-eye me-1"></i>Profile</a
+                  >
+                  <a
+                    href="{{ url_for('admin.add_result', student_id=student.id) }}"
+                    class="btn btn-action success me-1"
+                    ><i class="fa-solid fa-upload me-1"></i>Result</a
+                  >
+                  <form
+                    method="post"
+                    action="{{ url_for('admin.demote_student', id=student.id) }}"
+                    class="d-inline"
+                    onsubmit="return confirm('Are you sure you want to demote {{ student.name }} to the previous class?');"
+                  >
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    <button type="submit" class="btn btn-action warning">
+                      <i class="fa-solid fa-arrow-down me-1"></i>Demote
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <i class="fa-solid fa-user-graduate"></i>
+          <h5>No Students in this Class</h5>
+          <p>No students assigned to this class yet.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

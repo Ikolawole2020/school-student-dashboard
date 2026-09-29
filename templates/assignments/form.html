@@ -1,0 +1,66 @@
+{% extends 'base.html' %} {% block title %}{{ 'Edit' if assignment else
+'Post' }} Assignment{% endblock %} {% block content %}
+<div class="d-flex justify-content-center py-4">
+  <div class="card border-0 shadow w-100 page-form-card">
+    <div class="card-body p-4">
+      <div class="page-header mb-4">
+        <span class="accent-bar"></span>
+        <h3>
+          <i class="fa-solid fa-clipboard-list me-2 text-primary"></i>
+          {{ 'Edit Assignment' if assignment else 'Post an Assignment' }}
+        </h3>
+        <p class="page-subtitle">
+          Students in the selected class will see this immediately.
+        </p>
+      </div>
+
+      <form method="post">
+        {{ form.csrf_token }}
+        <div class="row g-3">
+          <div class="col-12">
+            <label for="title" class="form-label">Title</label>
+            {{ form.title(class="form-control", placeholder="e.g. Fractions worksheet 3") }}
+            {% for e in form.title.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="col-md-7">
+            <label for="subject" class="form-label">Subject</label>
+            {{ form.subject(class="form-control", list="subjectList", placeholder="Start typing to choose a subject") }}
+            <datalist id="subjectList">
+              {% for s in subjects %}<option value="{{ s }}"></option>{% endfor %}
+            </datalist>
+            {% for e in form.subject.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="col-md-5">
+            <label for="class_id" class="form-label">Class</label>
+            {{ form.class_id(class="form-select") }}
+            {% for e in form.class_id.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="col-md-7">
+            <label for="due_date" class="form-label">Due date (optional)</label>
+            {{ form.due_date(class="form-control", placeholder="YYYY-MM-DD") }}
+          </div>
+
+          <div class="col-md-5">
+            <label for="max_score" class="form-label">Maximum score</label>
+            {{ form.max_score(class="form-control", min="1", max="1000") }}
+            <div class="form-text">Defaults to 100.</div>
+          </div>
+
+          <div class="col-12">
+            <label for="description" class="form-label">Instructions</label>
+            {{ form.description(class="form-control", rows="6", placeholder="What should students do?") }}
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+          {{ form.submit(class="btn btn-brand px-4") }}
+          <a href="{{ url_for('assignments.index') }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

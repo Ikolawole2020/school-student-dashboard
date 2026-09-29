@@ -1,0 +1,129 @@
+{% extends 'base.html' %} {% block title %}Students - Admin{% endblock %} {%
+block content %}
+<div class="page-header d-flex justify-content-between align-items-center fade-in">
+  <div>
+    <h2><i class="fa-solid fa-users me-2 text-primary"></i>Students</h2>
+    <p class="page-subtitle">Manage student records and information</p>
+  </div>
+  <a class="btn btn-brand" href="/admin/students/add"
+    ><i class="fa-solid fa-user-plus me-1"></i> Add New Student</a
+  >
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <form method="GET" action="{{ url_for('admin.students') }}" class="row g-2">
+      <div class="col-md-5">
+        <input
+          type="text"
+          name="search"
+          class="form-control"
+          placeholder="Search by name or student ID..."
+          value="{{ search }}"
+        />
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-brand">
+          <i class="fa-solid fa-search me-1"></i> Search
+        </button>
+      </div>
+      {% if search %}
+      <div class="col-auto">
+        <a href="{{ url_for('admin.students') }}" class="btn btn-outline-secondary">
+          <i class="fa-solid fa-times me-1"></i> Clear
+        </a>
+      </div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+{% if students %}
+<div class="row g-3">
+  {% for s in students %}
+  <div class="col-lg-6 col-xl-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-3">
+          <div class="me-3">
+            {% if s.profile_picture and not s.profile_picture.startswith('default') %}
+            <img src="/uploads/{{ s.profile_picture }}" alt="{{ s.name }}" class="avatar" />
+            {% elif s.profile_picture and 'default' in s.profile_picture %}
+            <img src="/static/img/default-profile.webp" alt="{{ s.name }}" class="avatar" />
+            {% else %}
+            <div class="avatar d-flex align-items-center justify-content-center text-white" style="background: var(--primary)">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            {% endif %}
+          </div>
+          <div class="flex-grow-1 overflow-hidden">
+            <h6 class="fw-bold mb-1 text-truncate">
+              <a href="/admin/students/{{ s.id }}" class="text-decoration-none">{{ s.name }}</a>
+            </h6>
+            <span class="badge bg-light">{{ s.student_public_id }}</span>
+            {% if s.guardian_phone %}
+            <span class="d-block mt-1 small text-muted">
+              <i class="fa-solid fa-user-shield me-1"></i>{{ s.guardian_phone }}
+            </span>
+            {% else %}
+            <span class="d-block mt-1">
+              <span class="badge bg-warning text-dark">No guardian number</span>
+            </span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="mb-3 small text-muted">
+          <div class="mb-1">
+            <i class="fa-solid fa-graduation-cap me-1"></i
+            >{{ s.class_rel.class_name if s.class_rel else 'No class' }}
+          </div>
+          <div class="text-truncate">
+            <i class="fa-solid fa-envelope me-1"></i>{{ s.email }}
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="/admin/students/{{ s.id }}" class="btn btn-action info flex-grow-1">
+            <i class="fa-solid fa-eye"></i> Profile
+          </a>
+          <a href="/admin/students/{{ s.id }}/edit" class="btn btn-action warning">
+            <i class="fa-solid fa-edit"></i>
+          </a>
+          <form
+            method="post"
+            action="{{ url_for('admin.reset_student_password', id=s.id) }}"
+            class="d-inline"
+            onsubmit="return confirm('Reset this student\'s password? The new one will be shown once.');"
+          >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button type="submit" class="btn btn-action" title="Reset password">
+              <i class="fa-solid fa-key"></i>
+            </button>
+          </form>
+          <form
+            method="post"
+            action="/admin/students/{{ s.id }}/delete"
+            onsubmit="return confirm('Are you sure you want to delete {{ s.name }}?');"
+            class="d-inline"
+          >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button type="submit" class="btn btn-action danger">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state card border-0 shadow-sm">
+  <i class="fa-solid fa-users"></i>
+  <h5>No Students Found</h5>
+  <p>Start by adding your first student to the system.</p>
+  <a class="btn btn-brand" href="/admin/students/add">
+    <i class="fa-solid fa-user-plus me-1"></i> Add First Student
+  </a>
+</div>
+{% endif %}
+{% endblock %}

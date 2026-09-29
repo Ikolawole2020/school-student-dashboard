@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Virtual environment
+venv/
+.venv/
+
+# Local database and secrets - never commit these
+instance/
+*.db
+*.sqlite3
+secret_key.txt
+
+# User uploads
+uploads/*
+!uploads/.gitkeep
+
+# Environment
+.env
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

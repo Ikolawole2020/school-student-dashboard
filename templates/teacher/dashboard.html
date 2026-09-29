@@ -1,0 +1,117 @@
+{% extends 'base.html' %} {% block title %}Teacher Dashboard{% endblock %} {%
+block content %}
+<div class="page-header fade-in">
+  <h2><i class="fa-solid fa-gauge-high me-2 text-primary"></i>Teacher Dashboard</h2>
+  <p class="page-subtitle">Your profile and assigned class</p>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center p-4">
+        {% if teacher.profile_picture %}
+        <img src="/uploads/{{ teacher.profile_picture }}" alt="Profile Picture" class="avatar-xl mb-3" />
+        {% else %}
+        <div class="avatar-xl mx-auto mb-3 d-flex align-items-center justify-content-center text-white" style="background: var(--primary)">
+          <i class="fa-solid fa-user-tie fa-3x"></i>
+        </div>
+        {% endif %}
+        <h3 class="fw-bold mb-1">{{ teacher.name }}</h3>
+        <p class="text-muted mb-1">Staff ID: {{ teacher.staff_id }}</p>
+        <p class="mb-1 text-muted">Email: {{ teacher.email }}</p>
+        <p class="mb-0 text-muted">Phone: {{ teacher.phone or 'N/A' }}</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-icon bg-primary"><i class="fa-solid fa-users"></i></div>
+          <div>
+            <div class="stat-number">{{ student_count }}</div>
+            <div class="stat-label">Students</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-icon bg-success"><i class="fa-solid fa-clipboard-list"></i></div>
+          <div>
+            <div class="stat-number">{{ assignment_count }}</div>
+            <div class="stat-label">Assignments</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-icon bg-warning"><i class="fa-solid fa-book-open"></i></div>
+          <div>
+            <div class="stat-number">{{ plan_count }}</div>
+            <div class="stat-label">Lesson Plans</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-icon bg-info"><i class="fa-solid fa-pen-to-square"></i></div>
+          <div>
+            <div class="stat-number">{{ graded_count }}</div>
+            <div class="stat-label">Scores In</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header"><i class="fa-solid fa-bolt me-2 text-primary"></i>Quick Actions</div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-md-4">
+            <a href="{{ url_for('assignments.add') }}" class="btn btn-brand w-100 p-3">
+              <i class="fa-solid fa-plus mb-2 d-block fa-xl"></i> Post Assignment
+            </a>
+          </div>
+          <div class="col-md-4">
+            <a href="{{ url_for('assignments.index') }}" class="btn btn-outline-brand w-100 p-3">
+              <i class="fa-solid fa-clipboard-list mb-2 d-block fa-xl"></i> Assignment Hub
+            </a>
+          </div>
+          <div class="col-md-4">
+            <a href="{{ url_for('lessons.add') }}" class="btn btn-outline-brand w-100 p-3">
+              <i class="fa-solid fa-book-open mb-2 d-block fa-xl"></i> New Lesson Plan
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header"><i class="fa-solid fa-chalkboard me-2 text-primary"></i>Assigned Class</div>
+      <div class="card-body text-center p-4">
+        {% if assigned_class %}
+        <div class="stat-icon bg-primary mx-auto mb-3"><i class="fa-solid fa-school"></i></div>
+        <h4 class="mb-2">{{ assigned_class.class_name }}</h4>
+        <p class="text-muted mb-4">{{ assigned_class.description or 'No description available' }}</p>
+        <a href="{{ url_for('teacher.class_detail', class_id=assigned_class.id) }}" class="btn btn-brand px-4">
+          <i class="fa-solid fa-eye me-1"></i> View Class Details
+        </a>
+        {% else %}
+        <div class="empty-state">
+          <i class="fa-solid fa-chalkboard"></i>
+          <h5>No Class Assigned</h5>
+          <p>
+            You are not currently assigned to a class, so you cannot post class
+            assignments yet. You can still write and upload lesson plans, and an
+            administrator can assign you a class at any time.
+          </p>
+          <a href="{{ url_for('lessons.add') }}" class="btn btn-brand">
+            <i class="fa-solid fa-plus me-1"></i> New Lesson Plan
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

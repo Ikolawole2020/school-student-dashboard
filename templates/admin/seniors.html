@@ -1,0 +1,62 @@
+{% extends 'base.html' %} {% block title %}Seniors - Admin{% endblock %} {%
+block content %}
+<div class="page-header fade-in">
+  <h2><i class="fa-solid fa-graduation-cap me-2 text-primary"></i>Senior Departments</h2>
+  <p class="page-subtitle">Assign departments to SS1–SS3 students</p>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header"><i class="fa-solid fa-plus me-2 text-primary"></i>Assign Department</div>
+  <div class="card-body">
+    <form method="post">
+      {{ form.csrf_token }}
+      <div class="row g-3">
+        <div class="col-md-5">
+          {{ form.student_public_id.label(class="form-label") }} {{
+          form.student_public_id(class="form-control", placeholder="Enter Student ID") }}
+        </div>
+        <div class="col-md-4">
+          {{ form.department.label(class="form-label") }} {{
+          form.department(class="form-select") }}
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+          {{ form.submit(class="btn btn-brand w-100") }}
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Class</th>
+          <th>Department</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in seniors %}
+        <tr>
+          <td class="fw-semibold">{{ s.student.name }} <span class="text-muted fw-normal">({{ s.student.student_public_id }})</span></td>
+          <td>{{ s.student.class_rel.class_name if s.student.class_rel else 'N/A' }}</td>
+          <td><span class="badge bg-primary">{{ s.department }}</span></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="3">
+            <div class="empty-state">
+              <i class="fa-solid fa-graduation-cap"></i>
+              <h5>No Senior Students</h5>
+              <p>Senior students will appear here once assigned.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

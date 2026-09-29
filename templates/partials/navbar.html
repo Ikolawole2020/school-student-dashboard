@@ -1,0 +1,210 @@
+<div
+  class="sidebar vh-100 position-fixed d-flex flex-column"
+>
+  <div class="sidebar-header p-4 border-bottom d-flex justify-content-between align-items-start">
+    <a
+      href="/"
+      class="d-flex align-items-center text-decoration-none text-white flex-grow-1"
+    >
+      <img
+        src="/static/img/logo.jpg"
+        alt="Starlight Model School"
+        height="46"
+        class="me-3 rounded-circle"
+      />
+      <div class="flex-grow-1">
+        <h5 class="mb-0 fw-bold">Starlight</h5>
+        <small style="color: #94a3b8">Model School</small>
+        <span class="d-block mt-2" style="height: 3px; width: 100%; max-width: 120px; border-radius: 999px; background: linear-gradient(90deg, var(--warning), #fde047);"></span>
+      </div>
+    </a>
+    <button class="btn-close btn-close-white d-lg-none" id="sidebarClose" aria-label="Close sidebar"></button>
+  </div>
+
+  <div class="sidebar-nav p-3 flex-grow-1 overflow-auto">
+    <!-- Public Links -->
+    <div class="mb-4">
+      <a
+        href="/"
+        class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/' %}active{% endif %}"
+      >
+        <i class="fa-solid fa-house me-3"></i>
+        <span>Home</span>
+      </a>
+      <a
+        href="/check-result"
+        class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/check-result' %}active{% endif %}"
+      >
+        <i class="fa-solid fa-magnifying-glass-chart me-3"></i>
+        <span>Check Result</span>
+      </a>
+      <a
+        href="/assignments/"
+        class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path.startswith('/assignments') %}active{% endif %}"
+      >
+        <i class="fa-solid fa-clipboard-list me-3"></i>
+        <span>Assignments</span>
+      </a>
+      {% if not current_user.is_authenticated %}
+      <a
+        href="/auth/register-student"
+        class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/auth/register-student' %}active{% endif %}"
+      >
+        <i class="fa-solid fa-user-plus me-3"></i>
+        <span>Register</span>
+      </a>
+      {% endif %}
+    </div>
+
+    <!-- Auth Links -->
+    <div class="mb-4">
+      {% if current_user.is_authenticated %}
+      <a
+        href="/auth/logout"
+        class="nav-link d-flex align-items-center py-2 px-3 rounded"
+      >
+        <i class="fa-solid fa-right-from-bracket me-3"></i>
+        <span>Logout</span>
+      </a>
+      {% else %}
+      <a
+        href="/auth/login"
+        class="nav-link d-flex align-items-center py-2 px-3 rounded {% if request.path == '/auth/login' %}active{% endif %}"
+      >
+        <i class="fa-solid fa-right-to-bracket me-3"></i>
+        <span>Login</span>
+      </a>
+      {% endif %}
+    </div>
+
+    <!-- Role-based Navigation -->
+    {% if current_user.is_authenticated %}
+    <div class="role-nav">
+      {% if current_user.role == 'admin' %}
+      <div class="mb-2">
+        <div class="px-3 py-1 mb-1" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.6px; color: #94a3b8;">
+          <i class="fa-solid fa-shield-halved me-2"></i>Admin Panel
+        </div>
+        <a
+          href="/admin/dashboard"
+          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/admin/dashboard' %}active{% endif %}"
+        >
+          <i class="fa-solid fa-tachometer-alt me-3"></i> Dashboard
+        </a>
+        <a
+          href="/admin/students"
+          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path.startswith('/admin/students') %}active{% endif %}"
+        >
+          <i class="fa-solid fa-users me-3"></i> Students
+        </a>
+        <a
+          href="/admin/teachers"
+          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path.startswith('/admin/teachers') %}active{% endif %}"
+        >
+          <i class="fa-solid fa-chalkboard-teacher me-3"></i> Teachers
+        </a>
+        <a
+          href="/admin/classes"
+          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path.startswith('/admin/classes') %}active{% endif %}"
+        >
+          <i class="fa-solid fa-school me-3"></i> Classes
+        </a>
+        <a
+          href="/admin/results"
+          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path.startswith('/admin/results') %}active{% endif %}"
+        >
+          <i class="fa-solid fa-clipboard-check me-3"></i> Results
+        </a>
+        <a
+          href="/admin/seniors"
+          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path.startswith('/admin/seniors') %}active{% endif %}"
+        >
+          <i class="fa-solid fa-graduation-cap me-3"></i> Seniors
+        </a>
+        <a
+          href="/lessons/"
+          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path.startswith('/lessons') %}active{% endif %}"
+        >
+          <i class="fa-solid fa-book-open me-3"></i> Lesson Plans
+        </a>
+        <a
+          href="/auth/change-password"
+          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/auth/change-password' %}active{% endif %}"
+        >
+          <i class="fa-solid fa-key me-3"></i> Change Password
+        </a>
+      </div>
+      {% elif current_user.role == 'student' %}
+      <div class="mb-2">
+        <div class="px-3 py-1 mb-1" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.6px; color: #94a3b8;">
+          <i class="fa-solid fa-user-graduate me-2"></i>Student Portal
+        </div>
+        <a
+          href="/student/dashboard"
+          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/student/dashboard' %}active{% endif %}"
+        >
+          <i class="fa-solid fa-tachometer-alt me-3"></i> Dashboard
+        </a>
+        <a
+          href="/student/profile"
+          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/student/profile' %}active{% endif %}"
+        >
+          <i class="fa-solid fa-user me-3"></i> Profile
+        </a>
+        <a
+          href="/student/results"
+          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/student/results' %}active{% endif %}"
+        >
+          <i class="fa-solid fa-chart-line me-3"></i> Results
+        </a>
+        <a
+          href="/auth/change-password"
+          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/auth/change-password' %}active{% endif %}"
+        >
+          <i class="fa-solid fa-key me-3"></i> Change Password
+        </a>
+      </div>
+      {% elif current_user.role == 'teacher' %}
+      <div class="mb-2">
+        <div class="px-3 py-1 mb-1" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.6px; color: #94a3b8;">
+          <i class="fa-solid fa-chalkboard-teacher me-2"></i>Teacher Portal
+        </div>
+        <a
+          href="/teacher/dashboard"
+          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/teacher/dashboard' %}active{% endif %}"
+        >
+          <i class="fa-solid fa-tachometer-alt me-3"></i> Dashboard
+        </a>
+        <a
+          href="/lessons/"
+          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path.startswith('/lessons') %}active{% endif %}"
+        >
+          <i class="fa-solid fa-book-open me-3"></i> Lesson Plans
+        </a>
+        <a
+          href="/auth/change-password"
+          class="nav-link d-flex align-items-center py-2 px-3 rounded mb-1 {% if request.path == '/auth/change-password' %}active{% endif %}"
+        >
+          <i class="fa-solid fa-key me-3"></i> Change Password
+        </a>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- User Info -->
+  {% if current_user.is_authenticated %}
+  <div class="sidebar-footer p-3 border-top mt-auto">
+    <div class="d-flex align-items-center">
+      <div class="flex-grow-1">
+        <small style="color: #94a3b8">Logged in as</small>
+        <div class="fw-bold text-white">{{ current_user.email }}</div>
+        <span class="badge mt-1" style="background: var(--primary); color: #fff">
+          <i class="fa-solid fa-user me-1"></i>{{ current_user.role }}
+        </span>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>

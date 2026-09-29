@@ -1,0 +1,112 @@
+{% extends 'base.html' %} {% block title %}{{ 'Edit' if plan else 'New' }}
+Lesson Plan{% endblock %} {% block content %}
+<div class="d-flex justify-content-center py-4">
+  <div class="card border-0 shadow w-100 page-form-card">
+    <div class="card-body p-4">
+      <div class="page-header mb-4">
+        <span class="accent-bar"></span>
+        <h3>
+          <i class="fa-solid fa-book-open me-2 text-primary"></i>
+          {{ 'Edit Lesson Plan' if plan else 'New Lesson Plan' }}
+        </h3>
+        <p class="page-subtitle">
+          Plan one week of teaching. Type your subject and class as you teach it.
+        </p>
+      </div>
+
+      <form method="post" enctype="multipart/form-data">
+        {{ form.csrf_token }}
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label for="title" class="form-label">Lesson title</label>
+            {{ form.title(class="form-control", placeholder="e.g. Introduction to Fractions") }}
+            {% for e in form.title.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="col-md-4">
+            <label for="week_of" class="form-label">Week of</label>
+            {{ form.week_of(class="form-control", placeholder="YYYY-MM-DD") }}
+          </div>
+
+          <div class="col-md-6">
+            <label for="subject" class="form-label">Subject</label>
+            {{ form.subject(class="form-control", placeholder="e.g. Mathematics") }}
+            {% for e in form.subject.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="col-md-6">
+            <label for="class_name" class="form-label">Class <span class="text-muted">(optional)</span></label>
+            {{ form.class_name(class="form-control", placeholder="e.g. JSS1") }}
+            <div class="form-text">Type any class you teach, even one not yet created.</div>
+          </div>
+
+          {% if current_user.role == 'admin' and teachers %}
+          <div class="col-12">
+            <label class="form-label">File this plan for</label>
+            <select name="teacher_id" class="form-select">
+              <option value="">Myself ({{ current_user.email }})</option>
+              {% for t in teachers %}
+              <option value="{{ t.id }}">{{ t.name }} ({{ t.staff_id }})</option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Admins can create a plan on behalf of any teacher.</div>
+          </div>
+          {% endif %}
+
+          <div class="col-12">
+            <label for="objectives" class="form-label">Learning objectives</label>
+            {{ form.objectives(class="form-control", rows="4", placeholder="By the end of the week students should be able to...") }}
+          </div>
+
+          <div class="col-12">
+            <label for="activities" class="form-label">Class activities</label>
+            {{ form.activities(class="form-control", rows="4", placeholder="Lesson delivery, group work, practicals...") }}
+          </div>
+
+          <div class="col-md-6">
+            <label for="resources" class="form-label">Teaching resources</label>
+            {{ form.resources(class="form-control", rows="4", placeholder="Textbooks, charts, apparatus...") }}
+          </div>
+
+          <div class="col-md-6">
+            <label for="homework" class="form-label">Homework</label>
+            {{ form.homework(class="form-control", rows="4", placeholder="Exercises to complete at home") }}
+          </div>
+
+          <div class="col-12">
+            <label for="images" class="form-label">
+              Images <span class="text-muted">(optional)</span>
+            </label>
+            {{ form.images(class="form-control", multiple=True) }}
+            <div class="form-text">
+              Attach worksheets, diagrams or photos. You can select several at once
+              and add more later - each file must be under 4MB.
+            </div>
+            {% for e in form.images.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+
+        {% if plan and plan.images %}
+        <div class="mt-4">
+          <label class="form-label">Already attached ({{ plan.images | length }})</label>
+          <p class="text-muted small mb-2">
+            These stay as they are. Remove any from the lesson plan page instead.
+          </p>
+          <div class="d-flex flex-wrap gap-2">
+            {% for img in plan.images %}
+            <img src="/uploads/{{ img.filename }}" alt="{{ img.caption or 'Attached image' }}"
+              class="img-thumbnail" style="width: 96px; height: 72px; object-fit: cover;" />
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="d-flex gap-2 mt-4">
+          {{ form.submit(class="btn btn-brand px-4") }}
+          <a href="{{ url_for('lessons.index') }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

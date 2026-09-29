@@ -648,7 +648,8 @@ input[type="file"].form-control::file-selector-button:hover {
   background: linear-gradient(180deg, #0f172a 0%, #111c2e 100%) !important;
   border-right: 1px solid rgba(255, 255, 255, .06);
   width: var(--sidebar-width) !important;
-  z-index: 1040;
+  /* must stay above .sidebar-overlay (1055) or the drawer cannot be clicked */
+  z-index: 1060;
 }
 
 [data-theme="dark"] .sidebar {
@@ -961,3 +962,154 @@ input[type="file"].form-control::file-selector-button:hover {
 }
 .list-group-item:hover { background: var(--surface-2); }
 .list-group-item:focus { background: var(--surface-2); outline: none; }
+
+/* ============================================================
+   Critical stacking fixes
+   ============================================================ */
+
+/* The overlay MUST sit below the sidebar, otherwise it swallows clicks on
+   the nav links. Previously modern.css set the sidebar to 1040 while the
+   overlay was 1055, so an opened drawer was unclickable on small screens. */
+.sidebar-overlay { z-index: 1055; }
+.sidebar { z-index: 1060; }
+.mobile-toggle { z-index: 1050; }
+
+/* the drawer must never be clipped or partially off-canvas */
+.sidebar {
+  width: min(280px, 84vw) !important;
+  max-width: 84vw;
+  will-change: transform;
+}
+
+/* ============================================================
+   Tablet and small-screen layout repairs
+   ============================================================ */
+
+/* --- 992px down: the drawer layout --- */
+@media (max-width: 991.98px) {
+  .main-content {
+    margin-left: 0 !important;
+    padding: 1.25rem 1rem 2.5rem !important;
+  }
+
+  /* leave room for the floating menu button */
+  .app-topbar { margin-bottom: 1.25rem; }
+
+  /* grids: keep pairs side by side, drop to one column earlier */
+  .row > [class*="col-lg-"] { width: 100%; }
+
+  /* stat cards read better two-up than one-up on a tablet */
+  .row.g-3 > .col-md-4,
+  .row.g-3 > .col-md-3 { width: 50%; }
+  .row.g-3 > .col-md-4 > *:only-child,
+  .row.g-3 > .col-md-3 > *:only-child { height: 100%; }
+
+  /* quick-action buttons: two per row instead of one huge block */
+  .row > .col-md-3 > .btn,
+  .row > .col-md-4 > .btn { font-size: 0.82rem; padding: 0.9rem 0.5rem; }
+  .row > .col-md-3 > .btn i,
+  .row > .col-md-4 > .btn i { font-size: 1.4rem; margin-bottom: 0.5rem !important; }
+
+  .page-form-card { max-width: 100%; }
+}
+
+/* --- 768px and below: single column everywhere --- */
+@media (max-width: 767.98px) {
+  .row.g-3 > .col-md-4,
+  .row.g-3 > .col-md-3,
+  .row.g-4 > .col-md-6 { width: 100%; }
+
+  .card-body { padding: 1rem; }
+  .card-header { padding: 0.85rem 1rem; }
+
+  /* stack stat-card internals so the label never collides with the number */
+  .stat-card {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    gap: 0.6rem;
+    padding: 1rem;
+  }
+  .stat-number { font-size: 1.5rem; }
+
+  /* form rows: never leave a half-width field next to nothing */
+  .row > [class*="col-md-"] { width: 100%; }
+
+  /* images inside cards */
+  .gallery-item img,
+  .col-6 img { height: 120px !important; }
+
+  /* long badge rows wrap instead of overflowing */
+  .badge { font-size: 0.68rem; }
+
+  .table thead th, .table tbody td { padding: 0.7rem 0.75rem; }
+
+  .toast-stack { left: 0.75rem; right: 0.75rem; max-width: none; }
+}
+
+/* --- 575px and below: the small-phone floor --- */
+@media (max-width: 575.98px) {
+  .main-content { padding: 1rem 0.75rem 2rem !important; }
+
+  .app-topbar {
+    padding: 0.5rem 0.6rem;
+    border-radius: var(--r-md);
+  }
+  .topbar-title { font-size: 0.9rem; }
+  .topbar-sub { display: none !important; }
+
+  /* the user dropdown collapses to an icon */
+  .app-topbar .btn-outline-secondary { padding: 0.4rem 0.6rem; }
+
+  .row > * { margin-left: 0; margin-right: 0; }
+  .row { --bs-gutter-x: 0.75rem; --bs-gutter-y: 0.75rem; }
+
+  .btn { padding: 0.5rem 0.8rem; font-size: 0.85rem; }
+  .btn-block, .w-100.btn { width: 100%; }
+
+  /* stack the action buttons in a card footer */
+  .d-inline-flex.gap-1 { flex-wrap: wrap; }
+
+  .page-header h2 { font-size: 1.2rem; }
+  .accent-bar { width: 36px; height: 3px; }
+
+  .empty-state { padding: 2rem 1rem; }
+  .empty-state i { font-size: 2.1rem; }
+
+  .avatar-xl { width: 84px; height: 84px; }
+}
+
+/* --- Landscape phones: the drawer must still fit --- */
+@media (max-width: 991.98px) and (orientation: landscape) {
+  .sidebar { width: 240px !important; }
+}
+
+/* Prevent the page behind an open drawer from scrolling on touch devices */
+@media (max-width: 991.98px) {
+  body.nav-open { overflow: hidden; }
+}
+
+/* ============================================================
+   Drawer keyboard accessibility
+   ============================================================ */
+
+/* A closed off-canvas drawer must not be reachable by keyboard, otherwise
+   tabbing on a phone walks through invisible links. */
+@media (max-width: 991.98px) {
+  .sidebar {
+    visibility: hidden;
+    transform: translateX(-100%);
+    transition: transform 0.28s var(--ease), visibility 0.28s var(--ease);
+  }
+  .sidebar.show {
+    visibility: visible;
+    transform: translateX(0);
+  }
+}
+
+/* iOS Safari: prevent the page rubber-banding behind an open drawer */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 991.98px) {
+    body.nav-open { position: fixed; width: 100%; overflow: hidden; }
+  }
+}

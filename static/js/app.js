@@ -94,21 +94,28 @@
     var closeBtn = document.getElementById("sidebarClose");
     if (!toggle || !sidebar) return;
 
+    function isOpen() { return sidebar.classList.contains("show"); }
+
     function open() {
       sidebar.classList.add("show");
       if (overlay) overlay.classList.add("show");
       toggle.setAttribute("aria-expanded", "true");
-      document.body.style.overflow = "hidden";
+      document.body.classList.add("nav-open");
+      // move focus into the drawer so keyboard users land where they clicked
+      var first = sidebar.querySelector("a, button");
+      if (first) setTimeout(function () { first.focus(); }, 260);
     }
+
     function close() {
       sidebar.classList.remove("show");
       if (overlay) overlay.classList.remove("show");
       toggle.setAttribute("aria-expanded", "false");
-      document.body.style.overflow = "";
+      document.body.classList.remove("nav-open");
     }
-    function isOpen() { return sidebar.classList.contains("show"); }
 
-    toggle.addEventListener("click", function () { isOpen() ? close() : open(); });
+    toggle.addEventListener("click", function () {
+      if (isOpen()) { close(); } else { open(); }
+    });
     if (overlay) overlay.addEventListener("click", close);
     if (closeBtn) closeBtn.addEventListener("click", close);
 
@@ -119,8 +126,25 @@
       });
     });
 
+    // Escape closes, and Tab cycles inside the drawer while it is open
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && isOpen()) close();
+      if (!isOpen()) return;
+      if (e.key === "Escape") { close(); toggle.focus(); return; }
+      if (e.key !== "Tab") return;
+
+      var focusable = sidebar.querySelectorAll(
+        'a[href], button:not([disabled]), input, select, textarea'
+      );
+      if (!focusable.length) return;
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     });
 
     window.addEventListener("resize", function () {

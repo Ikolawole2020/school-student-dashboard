@@ -1,0 +1,122 @@
+{% extends 'base.html' %} {% block title %}News & Announcements{% endblock %}
+{% block content %}
+<div class="page-header fade-in">
+  <span class="accent-bar"></span>
+  <h2><i class="fa-solid fa-newspaper me-2 text-primary"></i>News &amp; Announcements</h2>
+  <p class="page-subtitle">Everything happening at Starlight Model School</p>
+</div>
+
+<form method="get" class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label small text-muted mb-1">Search</label>
+        <input type="search" name="q" value="{{ search }}" class="form-control"
+          placeholder="Search news…" />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small text-muted mb-1">Category</label>
+        <select name="category" class="form-select">
+          <option value="">All categories</option>
+          {% for c in categories %}
+          <option value="{{ c }}" {% if category == c %}selected{% endif %}>
+            {{ c | title }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-auto">
+        <button class="btn btn-brand w-100"><i class="fa-solid fa-filter me-1"></i> Search</button>
+      </div>
+      {% if search or category %}
+      <div class="col-md-auto">
+        <a href="{{ url_for('content.index') }}" class="btn btn-outline-secondary w-100">Clear</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</form>
+
+{% if posts %}
+<div class="row g-4 stagger">
+  {% for p in posts %}
+  <div class="col-md-6 col-xl-4">
+    <div class="card border-0 shadow-sm h-100 post-card">
+      <a href="{{ url_for('content.detail', slug=p.slug) }}" class="text-decoration-none">
+        {% if p.cover_image %}
+        <img src="/uploads/{{ p.cover_image }}" class="card-img-top post-cover" alt="{{ p.title }}" />
+        {% else %}
+        <div class="post-cover post-cover-placeholder d-flex align-items-center justify-content-center">
+          <i class="fa-solid {{ icons[p.category] }} fa-3x"></i>
+        </div>
+        {% endif %}
+      </a>
+      <div class="card-body d-flex flex-column">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="badge {{ colours[p.category] }}">
+            <i class="fa-solid {{ icons[p.category] }} me-1"></i>{{ p.category | title }}
+          </span>
+          <small class="text-muted">{{ p.published_at | friendly_date }}</small>
+        </div>
+        <h5 class="mb-2">
+          <a href="{{ url_for('content.detail', slug=p.slug) }}" class="text-decoration-none post-title">
+            {{ p.title }}
+          </a>
+        </h5>
+        <p class="small text-muted mb-3">
+          {{ p.summary or p.preview }}{% if not p.summary and p.body|length > 200 %}…{% endif %}
+        </p>
+        <div class="mt-auto d-flex justify-content-between align-items-center small text-muted">
+          <span>
+            <i class="fa-regular fa-eye me-1"></i>{{ p.views }}
+            <span class="mx-1">·</span>
+            <i class="fa-regular fa-clock me-1"></i>{{ p.reading_minutes }} min read
+          </span>
+          <a href="{{ url_for('content.detail', slug=p.slug) }}" class="btn btn-sm btn-outline-brand">
+            Read
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if pagination.pages > 1 %}
+<nav class="mt-4 d-flex justify-content-center">
+  <ul class="pagination">
+    {% for p in pagination.iter_pages() %}
+      {% if p %}
+      <li class="page-item {% if p == pagination.page %}active{% endif %}">
+        <a class="page-link"
+          href="{{ url_for('content.index', page=p, category=category, q=search) }}">{{ p }}</a>
+      </li>
+      {% else %}
+      <li class="page-item disabled"><span class="page-link">…</span></li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <div class="empty-state">
+      <i class="fa-solid fa-newspaper"></i>
+      <h5>Nothing here yet</h5>
+      <p>
+        {% if search or category %}
+          No posts match that search. Try a different word or category.
+        {% else %}
+          News and announcements from the school will appear here.
+        {% endif %}
+      </p>
+      {% if search or category %}
+      <a href="{{ url_for('content.index') }}" class="btn btn-brand">Show everything</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

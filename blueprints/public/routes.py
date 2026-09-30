@@ -10,10 +10,30 @@ from . import public_bp
 
 @public_bp.route('/')
 def home():
-    """Public landing page. Shows the most recently posted assignments so
-    visitors can see the school is active, without exposing student data."""
-    latest = Assignment.query.order_by(Assignment.created_at.desc()).limit(3).all()
-    return render_template('public/home.html', latest_assignments=latest)
+    """Public landing page.
+
+    Surfaces the latest school news and a few testimonials, so a visitor sees
+    the school is active without having to sign in.
+    """
+    from models import Post, Testimonial
+    latest_assignments = (
+        Assignment.query.order_by(Assignment.created_at.desc()).limit(3).all()
+    )
+    latest_posts = (
+        Post.query.filter_by(is_published=True)
+        .order_by(Post.published_at.desc()).limit(3).all()
+    )
+    testimonials = (
+        Testimonial.query.filter_by(is_published=True)
+        .order_by(Testimonial.sort_order.asc(), Testimonial.created_at.desc())
+        .limit(3).all()
+    )
+    return render_template(
+        'public/home.html',
+        latest_assignments=latest_assignments,
+        latest_posts=latest_posts,
+        testimonials=testimonials,
+    )
 
 
 @public_bp.route('/check-result', methods=['GET', 'POST'])

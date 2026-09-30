@@ -3,6 +3,7 @@ from flask_wtf import FlaskForm
 from wtforms import (
     StringField, PasswordField, SubmitField, SelectField, DateField,
     FloatField, FileField, TextAreaField, MultipleFileField, BooleanField,
+    IntegerField,
 )
 from wtforms.validators import (
     DataRequired, Email, Length, Optional, NumberRange, Regexp, EqualTo,
@@ -364,6 +365,84 @@ class HolidayForm(FlaskForm):
         'Description', validators=[Optional(), Length(max=1000)]
     )
     submit = SubmitField('Save holiday')
+
+
+# ------------------------------------------------------------------- content
+
+POST_CATEGORIES = [
+    ('news', 'News'),
+    ('announcement', 'Announcement'),
+    ('event', 'Event'),
+    ('achievement', 'Achievement'),
+]
+
+CATEGORY_ICONS = {
+    'news': 'fa-newspaper',
+    'announcement': 'fa-bullhorn',
+    'event': 'fa-calendar-day',
+    'achievement': 'fa-trophy',
+}
+
+CATEGORY_COLOURS = {
+    'news': 'bg-primary',
+    'announcement': 'bg-danger',
+    'event': 'bg-info',
+    'achievement': 'bg-warning text-dark',
+}
+
+TESTIMONIAL_ROLES = ['Parent', 'Student', 'Teacher', 'Alumnus']
+
+
+class PostForm(FlaskForm):
+    """A news post or announcement for the public school page."""
+
+    title = StringField('Title', validators=[DataRequired(), Length(max=160)])
+    category = SelectField(
+        'Category', choices=POST_CATEGORIES, default='news',
+        validators=[DataRequired()],
+    )
+    summary = TextAreaField(
+        'Short summary', validators=[Optional(), Length(max=300)]
+    )
+    body = TextAreaField(
+        'Full story', validators=[DataRequired()]
+    )
+    author = StringField(
+        'Author', validators=[Optional(), Length(max=120)]
+    )
+    cover_image = FileField('Cover image')
+    images = MultipleFileField(
+        'Gallery images',
+        validators=[Optional(), FileSize(max_size=4 * 1024 * 1024)],
+    )
+    is_published = BooleanField('Published', default=True)
+    is_featured = BooleanField('Feature this on the home page', default=False)
+    submit = SubmitField('Save post')
+
+
+class TestimonialForm(FlaskForm):
+    """A quote from a parent, student or member of staff."""
+
+    name = StringField('Name', validators=[DataRequired(), Length(max=120)])
+    role = SelectField(
+        'They are a', choices=[(r, r) for r in TESTIMONIAL_ROLES],
+        default='Parent', validators=[DataRequired()],
+    )
+    quote = TextAreaField(
+        'What they said', validators=[DataRequired(), Length(max=1000)]
+    )
+    avatar = FileField('Photo (optional)')
+    rating = SelectField(
+        'Rating', coerce=int, default=5,
+        choices=[(5, '5 — Excellent'), (4, '4 — Good'), (3, '3 — Average'),
+                 (2, '2 — Poor'), (1, '1 — Bad')],
+        validators=[Optional()],
+    )
+    is_published = BooleanField('Show on the home page', default=True)
+    sort_order = IntegerField(
+        'Sort order', default=0, validators=[Optional()]
+    )
+    submit = SubmitField('Save testimonial')
 
 
 class LessonPlanForm(FlaskForm):

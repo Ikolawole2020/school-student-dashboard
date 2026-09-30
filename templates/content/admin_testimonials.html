@@ -1,0 +1,81 @@
+{% extends 'base.html' %} {% block title %}Testimonials - Admin{% endblock %}
+{% block content %}
+<div class="page-header fade-in d-flex flex-wrap justify-content-between align-items-end gap-3">
+  <div>
+    <span class="accent-bar"></span>
+    <h2><i class="fa-solid fa-quote-left me-2 text-primary"></i>Testimonials</h2>
+    <p class="page-subtitle">
+      {{ testimonials|length }} total ·
+      {{ testimonials|selectattr('is_published')|list|length }} shown on the home page
+    </p>
+  </div>
+  <a href="{{ url_for('content.admin_add_testimonial') }}" class="btn btn-brand">
+    <i class="fa-solid fa-plus me-1"></i> New testimonial
+  </a>
+</div>
+
+{% if testimonials %}
+<div class="row g-3 stagger">
+  {% for t in testimonials %}
+  <div class="col-md-6 col-xl-4">
+    <div class="card border-0 shadow-sm h-100 {% if not t.is_published %}opacity-50{% endif %}">
+      <div class="card-body d-flex flex-column">
+        <div class="d-flex align-items-start gap-3 mb-3">
+          {% if t.avatar %}
+          <img src="/uploads/{{ t.avatar }}" alt="{{ t.name }}" class="avatar" />
+          {% else %}
+          <span class="user-dot lg">{{ t.name[0] | upper }}</span>
+          {% endif %}
+          <div class="flex-grow-1 min-w-0">
+            <h6 class="fw-bold mb-0 text-truncate">{{ t.name }}</h6>
+            <small class="text-muted">{{ t.role }}</small>
+            <div class="text-warning small">
+              {% for _ in t.stars %}<i class="fa-solid fa-star"></i>{% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <blockquote class="flex-grow-1 small mb-3"
+          style="border-left:3px solid var(--brand-200);padding-left:.85rem;color:var(--ink-2)">
+          {{ t.quote }}
+        </blockquote>
+
+        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+          <span class="badge {{ 'bg-success' if t.is_published else 'bg-secondary' }}">
+            {{ 'Live' if t.is_published else 'Hidden' }}
+          </span>
+          <div class="d-inline-flex gap-1">
+            <a href="{{ url_for('content.admin_edit_testimonial', id=t.id) }}" class="btn btn-action">
+              <i class="fa-solid fa-edit"></i>
+            </a>
+            <form method="post"
+              action="{{ url_for('content.admin_delete_testimonial', id=t.id) }}"
+              onsubmit="return confirm('Delete this testimonial?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button class="btn btn-action danger"><i class="fa-solid fa-trash"></i></button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <div class="empty-state">
+      <i class="fa-solid fa-quote-left"></i>
+      <h5>No testimonials yet</h5>
+      <p>
+        Add a few words from parents or students and they will appear on the
+        home page.
+      </p>
+      <a href="{{ url_for('content.admin_add_testimonial') }}" class="btn btn-brand">
+        <i class="fa-solid fa-plus me-1"></i> Add the first one
+      </a>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

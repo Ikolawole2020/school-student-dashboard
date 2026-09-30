@@ -31,6 +31,10 @@
         class="nav-link {% if request.path.startswith('/assignments') %}active{% endif %}">
         <i class="fa-solid fa-clipboard-list"></i><span>Assignment Hub</span>
       </a>
+      <a href="/news"
+        class="nav-link {% if request.path.startswith('/news') %}active{% endif %}">
+        <i class="fa-solid fa-newspaper"></i><span>News</span>
+      </a>
       <a href="/check-result"
         class="nav-link {% if request.path == '/check-result' %}active{% endif %}">
         <i class="fa-solid fa-magnifying-glass-chart"></i><span>Check Result</span>
@@ -65,6 +69,12 @@
       </a>
       <a href="/admin/seniors" class="nav-link {% if request.path.startswith('/admin/seniors') %}active{% endif %}">
         <i class="fa-solid fa-graduation-cap"></i><span>Seniors</span>
+      </a>
+      <a href="/admin/news" class="nav-link {% if request.path.startswith('/admin/news') %}active{% endif %}">
+        <i class="fa-solid fa-newspaper"></i><span>News &amp; Announcements</span>
+      </a>
+      <a href="/admin/testimonials" class="nav-link {% if request.path.startswith('/admin/testimonials') %}active{% endif %}">
+        <i class="fa-solid fa-quote-left"></i><span>Testimonials</span>
       </a>
       <a href="/lessons/" class="nav-link {% if request.path.startswith('/lessons') %}active{% endif %}">
         <i class="fa-solid fa-book-open"></i><span>Lesson Plans</span>

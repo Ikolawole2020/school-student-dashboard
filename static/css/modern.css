@@ -1208,3 +1208,62 @@ input[type="file"].form-control::file-selector-button:hover {
 .att-stat.late .n    { color: #b45309; }
 .att-stat.excused { background: #f0f9ff; border-color: #bae6fd; }
 .att-stat.excused .n { color: #0369a1; }
+
+/* ============================================================
+   News posts & testimonials
+   ============================================================ */
+
+.post-card { overflow: hidden; height: 100%; }
+.post-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--e-3);
+  border-color: var(--brand-200);
+}
+
+.post-cover {
+  height: 190px;
+  width: 100%;
+  object-fit: cover;
+  transition: transform .4s var(--ease);
+}
+.post-card:hover .post-cover { transform: scale(1.05); }
+
+.post-cover-placeholder {
+  background: linear-gradient(135deg, var(--brand-50), var(--surface-3));
+  color: var(--brand-500);
+}
+
+.post-title { color: var(--ink); transition: color var(--speed) var(--ease); }
+.post-title:hover { color: var(--brand-600); }
+
+/* long-form post body: readable measure, comfortable line height */
+.post-body {
+  font-size: 1.02rem;
+  line-height: 1.85;
+  color: var(--ink-2);
+  white-space: pre-line;
+  max-width: 72ch;
+}
+.post-body p { margin-bottom: 1.1rem; }
+
+/* pagination */
+.pagination { gap: .25rem; }
+.page-link {
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  padding: .4rem .75rem;
+}
+.page-item.active .page-link {
+  background: var(--brand-500);
+  border-color: var(--brand-500);
+}
+.page-link:hover { background: var(--surface-3); color: var(--ink); }
+
+/* quote mark used behind testimonials */
+.quote-mark {
+  font-size: 3.5rem;
+  line-height: 1;
+  color: var(--brand-200);
+  font-family: Georgia, serif;
+}

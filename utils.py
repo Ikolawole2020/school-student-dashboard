@@ -118,6 +118,28 @@ def unique_email(name, domain='smc.com'):
     return candidate
 
 
+def slugify(text, max_length=180):
+    """URL-friendly slug for a post title.
+
+    'Sports Day 2026!' -> 'sports-day-2026'. A numeric suffix is appended if
+    the slug is taken, so two similar titles never collide on one URL.
+
+    Note: this hyphenates words, unlike slugify_name() which strips spaces
+    entirely for use inside emails and public IDs.
+    """
+    import re
+    from models import Post
+
+    base = re.sub(r'[^a-z0-9]+', '-', (text or '').lower()).strip('-')
+    base = base[:max_length].strip('-') or 'post'
+    candidate = base
+    counter = 2
+    while Post.query.filter_by(slug=candidate).first():
+        candidate = f'{base}-{counter}'
+        counter += 1
+    return candidate
+
+
 def generate_password(length=10):
     """Readable random password that satisfies the 6-char minimum."""
     alphabet = string.ascii_letters + string.digits

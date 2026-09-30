@@ -1,0 +1,79 @@
+{% extends 'base.html' %} {% block title %}{{ 'Edit' if testimonial else 'New' }}
+Testimonial{% endblock %} {% block content %}
+<div class="d-flex justify-content-center py-4">
+  <div class="card border-0 shadow w-100" style="max-width:620px;border-radius:16px">
+    <div class="card-body p-4">
+      <div class="page-header mb-4">
+        <span class="accent-bar"></span>
+        <h3>
+          <i class="fa-solid fa-quote-left me-2 text-primary"></i>
+          {{ 'Edit Testimonial' if testimonial else 'New Testimonial' }}
+        </h3>
+        <p class="page-subtitle">Shown on the public home page</p>
+      </div>
+
+      <form method="post" enctype="multipart/form-data">
+        {{ form.csrf_token }}
+        <div class="row g-3">
+          <div class="col-md-7">
+            <label for="name" class="form-label">Name</label>
+            {{ form.name(class="form-control", placeholder="e.g. Mrs Adebayo") }}
+            {% for e in form.name.errors %}
+            <div class="text-danger small mt-1">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="col-md-5">
+            <label for="role" class="form-label">They are a</label>
+            {{ form.role(class="form-select") }}
+          </div>
+
+          <div class="col-12">
+            <label for="quote" class="form-label">What they said</label>
+            {{ form.quote(class="form-control", rows="5", placeholder="A short, genuine quote works best.") }}
+            {% for e in form.quote.errors %}
+            <div class="text-danger small mt-1">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="col-md-6">
+            <label for="rating" class="form-label">Rating</label>
+            {{ form.rating(class="form-select") }}
+          </div>
+
+          <div class="col-md-6">
+            <label for="sort_order" class="form-label">Sort order</label>
+            {{ form.sort_order(class="form-control", placeholder="0") }}
+            <div class="form-text">Lower numbers show first.</div>
+          </div>
+
+          <div class="col-12">
+            <label for="avatar" class="form-label">
+              Photo <span class="text-muted">(optional)</span>
+            </label>
+            {{ form.avatar(class="form-control") }}
+            <div class="form-text">
+              Leave blank and their initial is shown instead.
+            </div>
+          </div>
+
+          <div class="col-12">
+            <div class="form-check form-switch p-3 rounded"
+              style="background:var(--surface-2);border:1px solid var(--border)">
+              {{ form.is_published(class="form-check-input", role="switch") }}
+              <label class="form-check-label" for="is_published">
+                {{ form.is_published.label.text }}
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+          {{ form.submit(class="btn btn-brand px-4") }}
+          <a href="{{ url_for('content.admin_testimonials') }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends 'base.html' %} {% block title %}{{ 'Edit' if post else 'New' }} Post{%
+endblock %} {% block content %}
+<div class="d-flex justify-content-center py-4">
+  <div class="card border-0 shadow w-100 page-form-card" style="max-width:820px">
+    <div class="card-body p-4">
+      <div class="page-header mb-4">
+        <span class="accent-bar"></span>
+        <h3>
+          <i class="fa-solid fa-newspaper me-2 text-primary"></i>
+          {{ 'Edit Post' if post else 'Write a Post' }}
+        </h3>
+        <p class="page-subtitle">
+          This appears on the public school page for everyone to read.
+        </p>
+      </div>
+
+      <form method="post" enctype="multipart/form-data">
+        {{ form.csrf_token }}
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label for="title" class="form-label">Title</label>
+            {{ form.title(class="form-control", placeholder="e.g. Our pupils win the state science quiz") }}
+            {% for e in form.title.errors %}
+            <div class="text-danger small mt-1">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="col-md-4">
+            <label for="category" class="form-label">Category</label>
+            {{ form.category(class="form-select") }}
+          </div>
+
+          <div class="col-12">
+            <label for="summary" class="form-label">
+              Short summary <span class="text-muted">(optional)</span>
+            </label>
+            {{ form.summary(class="form-control", rows="2", placeholder="One or two lines shown on the news cards.") }}
+            <div class="form-text">Leave blank and the start of the story is used instead.</div>
+          </div>
+
+          <div class="col-12">
+            <label for="body" class="form-label">Full story</label>
+            {{ form.body(class="form-control", rows="10", placeholder="Write the news here. Line breaks are kept.") }}
+            {% for e in form.body.errors %}
+            <div class="text-danger small mt-1">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="col-md-6">
+            <label for="author" class="form-label">Author <span class="text-muted">(optional)</span></label>
+            {{ form.author(class="form-control", placeholder="e.g. The Principal") }}
+          </div>
+
+          <div class="col-md-6">
+            <label for="cover_image" class="form-label">
+              Cover image
+              {% if post and post.cover_image %}
+                <span class="text-success"><i class="fa-solid fa-check me-1"></i>one set</span>
+              {% endif %}
+            </label>
+            {{ form.cover_image(class="form-control") }}
+          </div>
+
+          <div class="col-12">
+            <label for="images" class="form-label">
+              Gallery images <span class="text-muted">(optional)</span>
+            </label>
+            {{ form.images(class="form-control", multiple=True) }}
+            <div class="form-text">
+              Photos from the event. Select several at once, and add more later —
+              new images are added alongside the ones already there.
+            </div>
+            {% for e in form.images.errors %}
+            <div class="text-danger small mt-1">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          {% if post and post.images %}
+          <div class="col-12">
+            <label class="form-label">Already attached ({{ post.images|length }})</label>
+            <div class="d-flex flex-wrap gap-2">
+              {% for img in post.images %}
+              <div class="position-relative">
+                <img src="/uploads/{{ img.filename }}" alt="" class="rounded"
+                  style="width:88px;height:66px;object-fit:cover;border:1px solid var(--border)" />
+                <form method="post"
+                  action="{{ url_for('content.admin_delete_post_image', image_id=img.id) }}"
+                  class="position-absolute top-0 end-0 m-1"
+                  onsubmit="return confirm('Remove this image?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <button class="btn btn-sm btn-danger rounded-circle gallery-remove"
+                    aria-label="Remove image">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </form>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="col-12">
+            <div class="d-flex gap-4 flex-wrap p-3 rounded"
+              style="background:var(--surface-2);border:1px solid var(--border)">
+              <div class="form-check form-switch">
+                {{ form.is_published(class="form-check-input", role="switch") }}
+                <label class="form-check-label" for="is_published">
+                  {{ form.is_published.label.text }}
+                </label>
+              </div>
+              <div class="form-check form-switch">
+                {{ form.is_featured(class="form-check-input", role="switch") }}
+                <label class="form-check-label" for="is_featured">
+                  {{ form.is_featured.label.text }}
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+          {{ form.submit(class="btn btn-brand px-4") }}
+          <a href="{{ url_for('content.admin_posts') }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

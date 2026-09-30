@@ -251,4 +251,70 @@ class LessonPlanImage(db.Model):
     )
     filename = db.Column(db.String(200), nullable=False)
     caption = db.Column(db.String(150))
+
+
+class Post(db.Model):
+    """A news post or announcement shown on the public school page.
+
+    Drafts stay hidden until published_at is set, so an admin can write ahead
+    of time and the post appears on its scheduled day.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(160), nullable=False)
+    slug = db.Column(db.String(180), unique=True, nullable=False, index=True)
+    summary = db.Column(db.String(300))
+    body = db.Column(db.Text)
+    # 'news' | 'announcement' | 'event' | 'achievement'
+    category = db.Column(db.String(20), default='news', nullable=False)
+    cover_image = db.Column(db.String(200))
+    author = db.Column(db.String(120))
+    is_published = db.Column(db.Boolean, default=True, nullable=False)
+    is_featured = db.Column(db.Boolean, default=False, nullable=False)
+    views = db.Column(db.Integer, default=0, nullable=False)
+    published_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    images = db.relationship(
+        'PostImage', backref='post', cascade='all, delete-orphan',
+        order_by='PostImage.id',
+    )
+
+    @property
+    def reading_minutes(self):
+        words = len((self.body or '').split())
+        return max(1, round(words / 200))
+
+    @property
+    def preview(self):
+        """First ~40 words, for card summaries."""
+        return ' '.join((self.body or '').split()[:40])
+
+
+class PostImage(db.Model):
+    """A gallery image inside a post."""
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
+    filename = db.Column(db.String(200), nullable=False)
+    caption = db.Column(db.String(150))
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class Testimonial(db.Model):
+    """A quote from a parent, student or staff member, shown on the home page."""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    # 'Parent' | 'Student' | 'Teacher' | 'Alumnus'
+    role = db.Column(db.String(40), default='Parent', nullable=False)
+    quote = db.Column(db.Text, nullable=False)
+    avatar = db.Column(db.String(200))
+    rating = db.Column(db.Integer, default=5, nullable=False)
+    is_published = db.Column(db.Boolean, default=True, nullable=False)
+    sort_order = db.Column(db.Integer, default=0, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def stars(self):
+        return range(max(0, min(5, self.rating or 5)))
+
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)

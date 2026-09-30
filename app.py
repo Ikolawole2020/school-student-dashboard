@@ -16,6 +16,7 @@ from blueprints.teacher import teacher_bp
 from blueprints.assignments import assignments_bp
 from blueprints.lessons import lessons_bp
 from blueprints.attendance import attendance_bp
+from blueprints.content import content_bp
 
 
 def create_app():
@@ -181,6 +182,7 @@ def create_app():
     app.register_blueprint(assignments_bp, url_prefix='/assignments')
     app.register_blueprint(lessons_bp, url_prefix='/lessons')
     app.register_blueprint(attendance_bp, url_prefix='/attendance')
+    app.register_blueprint(content_bp, url_prefix='')
 
     with app.app_context():
         db.create_all()

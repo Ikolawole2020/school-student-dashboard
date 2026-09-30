@@ -23,11 +23,11 @@ os.environ['DATABASE_URL'] = f'sqlite:///{_TEST_DB}'
 
 from werkzeug.security import generate_password_hash
 
-from app import create_app
+from app import create_app, app
 from extensions import db
 from models import (
     User, Student, Teacher, Class, Assignment, LessonPlan,
-    AttendanceRecord, Holiday,
+    AttendanceRecord, Holiday, Post, PostImage, Testimonial,
 )
 
 _REAL_DB_MARKER = os.path.join('instance', 'starlight.db')
@@ -1086,3 +1086,151 @@ class TestFirstLoginPassword(BaseCase):
         self.assertEqual(
             self.client.get('/student/dashboard').status_code, 200
         )
+
+
+class TestNewsAndTestimonials(BaseCase):
+    """Admin-managed public content: news, announcements and testimonials."""
+
+    def _post_news(self, **over):
+        data = {
+            'title': 'Our pupils win the science quiz',
+            'category': 'news',
+            'body': 'Three pupils represented the school and came first.',
+            'author': 'The Principal',
+            'is_published': 'y',
+        }
+        data.update(over)
+        return self.client.post(
+            '/admin/news/add', data=data, follow_redirects=True
+        )
+
+    def test_admin_can_publish_a_post(self):
+        self.login('admin@test.com', 'adminpass')
+        response = self._post_news()
+        self.assertEqual(response.status_code, 200)
+        with self.app.app_context():
+            post = Post.query.first()
+            self.assertIsNotNone(post)
+            self.assertTrue(post.is_published)
+            self.assertEqual(post.slug, 'our-pupils-win-the-science-quiz')
+
+    def test_published_post_is_public(self):
+        self.login('admin@test.com', 'adminpass')
+        self._post_news()
+        self.logout()
+
+        anon = app.test_client()
+        listing = anon.get('/news').get_data(as_text=True)
+        self.assertIn('Our pupils win the science quiz', listing)
+        detail = anon.get('/news/our-pupils-win-the-science-quiz')
+        self.assertEqual(detail.status_code, 200)
+
+    def test_draft_post_is_hidden_from_the_public(self):
+        self.login('admin@test.com', 'adminpass')
+        self._post_news(title='Secret plans', is_published=None)
+        self.logout()
+
+        anon = app.test_client()
+        self.assertNotIn(
+            'Secret plans', anon.get('/news').get_data(as_text=True)
+        )
+        self.assertEqual(anon.get('/news/secret-plans').status_code, 404)
+
+    def test_toggle_publishes_and_hides(self):
+        self.login('admin@test.com', 'adminpass')
+        self._post_news()
+        with self.app.app_context():
+            post_id = Post.query.first().id
+
+        self.client.post(f'/admin/news/{post_id}/toggle')
+        with self.app.app_context():
+            self.assertFalse(Post.query.get(post_id).is_published)
+        self.client.post(f'/admin/news/{post_id}/toggle')
+        with self.app.app_context():
+            self.assertTrue(Post.query.get(post_id).is_published)
+
+    def test_duplicate_titles_get_distinct_slugs(self):
+        self.login('admin@test.com', 'adminpass')
+        self._post_news(title='Sports Day')
+        self._post_news(title='Sports Day')
+        with self.app.app_context():
+            slugs = {p.slug for p in Post.query.all()}
+            self.assertEqual(len(slugs), 2)
+            self.assertIn('sports-day', slugs)
+            self.assertIn('sports-day-2', slugs)
+
+    def test_teacher_cannot_manage_news(self):
+        self.login('ada@test.com', 'teachpass')
+        self.assertEqual(self.client.get('/admin/news').status_code, 403)
+        self.assertEqual(
+            self.client.post(
+                '/admin/news/add', data={'title': 'x', 'body': 'y', 'category': 'news'}
+            ).status_code,
+            403,
+        )
+
+    def test_student_can_read_news_but_not_manage(self):
+        self.login('amys@test.com', 'studpass')
+        self.assertEqual(self.client.get('/news').status_code, 200)
+        self.assertEqual(self.client.get('/admin/news').status_code, 403)
+
+    def test_news_appears_on_the_home_page(self):
+        self.login('admin@test.com', 'adminpass')
+        self._post_news()
+        self.logout()
+        anon = app.test_client()
+        self.assertIn(
+            'Our pupils win the science quiz',
+            anon.get('/').get_data(as_text=True),
+        )
+
+    def test_admin_can_add_testimonial(self):
+        self.login('admin@test.com', 'adminpass')
+        response = self.client.post(
+            '/admin/testimonials/add',
+            data={
+                'name': 'Mrs Adebayo', 'role': 'Parent',
+                'quote': 'My child has grown so much here.',
+                'rating': '5', 'is_published': 'y', 'sort_order': '0',
+            },
+            follow_redirects=True,
+        )
+        self.assertIn('Mrs Adebayo', response.get_data(as_text=True))
+        self.logout()
+        anon = app.test_client()
+        self.assertIn(
+            'My child has grown so much here.',
+            anon.get('/').get_data(as_text=True),
+        )
+
+    def test_hidden_testimonial_is_not_public(self):
+        self.login('admin@test.com', 'adminpass')
+        self.client.post(
+            '/admin/testimonials/add',
+            data={'name': 'Hidden Person', 'role': 'Parent',
+                  'quote': 'Should not appear.', 'rating': '5', 'sort_order': '0'},
+            follow_redirects=True,
+        )
+        with self.app.app_context():
+            tid = Testimonial.query.first().id
+        self.client.post(f'/admin/testimonials/{tid}/delete')
+        self.logout()
+        anon = app.test_client()
+        self.assertNotIn(
+            'Should not appear.', anon.get('/').get_data(as_text=True)
+        )
+
+    def test_teacher_cannot_manage_testimonials(self):
+        self.login('ada@test.com', 'teachpass')
+        self.assertEqual(
+            self.client.get('/admin/testimonials').status_code, 403
+        )
+
+    def test_delete_post_removes_it(self):
+        self.login('admin@test.com', 'adminpass')
+        self._post_news()
+        with self.app.app_context():
+            post_id = Post.query.first().id
+        self.client.post(f'/admin/news/{post_id}/delete')
+        with self.app.app_context():
+            self.assertEqual(Post.query.count(), 0)

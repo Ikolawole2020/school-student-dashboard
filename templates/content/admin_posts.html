@@ -1,0 +1,126 @@
+{% extends 'base.html' %} {% block title %}News &amp; Announcements - Admin{%
+endblock %} {% block content %}
+<div class="page-header fade-in d-flex flex-wrap justify-content-between align-items-end gap-3">
+  <div>
+    <span class="accent-bar"></span>
+    <h2><i class="fa-solid fa-newspaper me-2 text-primary"></i>News &amp; Announcements</h2>
+    <p class="page-subtitle">
+      {{ posts|length }} post(s) · {{ posts|selectattr('is_published')|list|length }} live
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('content.index') }}" class="btn btn-outline-secondary">
+      <i class="fa-solid fa-eye me-1"></i> View public page
+    </a>
+    <a href="{{ url_for('content.admin_add_post') }}" class="btn btn-brand">
+      <i class="fa-solid fa-plus me-1"></i> New post
+    </a>
+  </div>
+</div>
+
+{% if posts %}
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th style="width:64px"></th>
+          <th>Title</th>
+          <th style="width:130px">Category</th>
+          <th style="width:130px">Published</th>
+          <th style="width:80px">Views</th>
+          <th class="text-end" style="width:250px">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in posts %}
+        <tr class="{% if not p.is_published %}opacity-50{% endif %}">
+          <td>
+            {% if p.cover_image %}
+            <img src="/uploads/{{ p.cover_image }}" alt="" class="rounded"
+              style="width:52px;height:40px;object-fit:cover" />
+            {% else %}
+            <div class="rounded d-flex align-items-center justify-content-center"
+              style="width:52px;height:40px;background:var(--surface-3);color:var(--ink-3)">
+              <i class="fa-solid {{ icons[p.category] }}"></i>
+            </div>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('content.detail', slug=p.slug) }}"
+              class="fw-semibold text-decoration-none post-title">{{ p.title }}</a>
+            <div class="small text-muted">
+              {{ p.published_at | friendly_date }}
+              {% if p.author %} · {{ p.author }}{% endif %}
+              {% if p.images %}
+              <span class="ms-1">
+                <i class="fa-solid fa-images ms-1"></i>{{ p.images|length }}
+              </span>
+              {% endif %}
+            </div>
+          </td>
+          <td>
+            <span class="badge {{ colours[p.category] }}">{{ p.category | title }}</span>
+            {% if p.is_featured %}
+            <span class="badge bg-warning text-dark ms-1">
+              <i class="fa-solid fa-star me-1"></i>Featured
+            </span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge {{ 'bg-success' if p.is_published else 'bg-secondary' }}">
+              {{ 'Live' if p.is_published else 'Hidden' }}
+            </span>
+          </td>
+          <td class="small text-muted">{{ p.views }}</td>
+          <td class="text-end">
+            <div class="d-inline-flex gap-1 justify-content-end">
+              <a href="{{ url_for('content.detail', slug=p.slug) }}" class="btn btn-action info"
+                title="View">
+                <i class="fa-solid fa-eye"></i>
+              </a>
+              <a href="{{ url_for('content.admin_edit_post', id=p.id) }}" class="btn btn-action"
+                title="Edit">
+                <i class="fa-solid fa-edit"></i>
+              </a>
+              <form method="post" action="{{ url_for('content.admin_toggle_post', id=p.id) }}"
+                class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button class="btn btn-action warning" title="{{ 'Hide' if p.is_published else 'Publish' }}">
+                  <i class="fa-solid {{ 'fa-eye-slash' if p.is_published else 'fa-upload' }}"></i>
+                </button>
+              </form>
+              <form method="post" action="{{ url_for('content.admin_delete_post', id=p.id) }}"
+                class="d-inline"
+                onsubmit="return confirm('Delete "{{ p.title }}"? This cannot be undone.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button class="btn btn-action danger" title="Delete">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <div class="empty-state">
+      <i class="fa-solid fa-newspaper"></i>
+      <h5>No posts yet</h5>
+      <p>
+        Write your first news item or announcement and it will appear on the
+        public school page straight away.
+      </p>
+      <a href="{{ url_for('content.admin_add_post') }}" class="btn btn-brand">
+        <i class="fa-solid fa-plus me-1"></i> Write the first post
+      </a>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

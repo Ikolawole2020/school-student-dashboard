@@ -171,6 +171,7 @@ with app.app_context():
         'assignment_submission', 'assignment_submission_file',
         'lesson_plan', 'lesson_plan_image',
         'attendance_record', 'holiday',
+        'post', 'post_image', 'testimonial',
     ):
         print(f'{name}: {"present" if name in tables else "MISSING"}')
 

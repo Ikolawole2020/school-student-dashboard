@@ -14,6 +14,10 @@ instance/
 *.sqlite3
 secret_key.txt
 
+# Database backups and data snapshots - may contain student records
+backups/
+*.json.bak
+
 # User uploads
 uploads/*
 !uploads/.gitkeep

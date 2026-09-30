@@ -479,8 +479,10 @@ class TestTeachersWithoutClass(BaseCase):
     def test_generated_credentials_shown_once(self):
         self.login('admin@test.com', 'adminpass')
         body = self._add('Peter Cook', '08031234568').get_data(as_text=True)
-        self.assertIn('Temporary password', body)
+        # staff ID and email are generated; the password is derived from the
+        # name and reported alongside them
         self.assertIn('Staff ID', body)
+        self.assertIn('petsmc', body)  # first three letters: "pet" + "smc"
 
     def test_no_plaintext_password_stored(self):
         self.login('admin@test.com', 'adminpass')
@@ -702,3 +704,94 @@ class TestLessonPlanImagesAndFreeText(BaseCase):
         with self.app.app_context():
             plan = LessonPlan.query.filter_by(title='Week 1').first()
             self.assertEqual(len(plan.images), 1)
+
+
+class TestDerivedStaffPassword(BaseCase):
+    """Teacher passwords are derived from the name, never stored."""
+
+    def test_rule(self):
+        from utils import derive_staff_password
+        self.assertEqual(derive_staff_password('Ada Teacher'), 'adasmc')
+        self.assertEqual(derive_staff_password('Grace Chukwu'), 'grasmc')
+        self.assertEqual(derive_staff_password('Chidi'), 'chismc')
+        # short names fall back rather than crashing
+        self.assertEqual(derive_staff_password('Bo'), 'bosmc')
+        # surname changes do not change the password
+        self.assertEqual(
+            derive_staff_password('Ada Obi'), derive_staff_password('Ada Bello')
+        )
+
+    def test_teacher_is_created_with_derived_password(self):
+        from werkzeug.security import check_password_hash
+        self.login('admin@test.com', 'adminpass')
+        self.client.post(
+            '/admin/teachers/add',
+            data={'name': 'Ada Obi', 'phone': '08031234567', 'class_name': ''},
+            follow_redirects=True,
+        )
+        with self.app.app_context():
+            teacher = Teacher.query.filter_by(name='Ada Obi').first()
+            self.assertIsNotNone(teacher)
+            self.assertTrue(
+                check_password_hash(teacher.user.password_hash, 'ada smc'.replace(' ', ''))
+            )
+
+    def test_teacher_can_log_in_with_derived_password(self):
+        self.login('admin@test.com', 'adminpass')
+        self.client.post(
+            '/admin/teachers/add',
+            data={'name': 'Grace Chukwu', 'phone': '08031234567', 'class_name': ''},
+            follow_redirects=True,
+        )
+        with self.app.app_context():
+            email = Teacher.query.filter_by(name='Grace Chukwu').first().email
+        self.logout()
+        response = self.login(email, 'grasmc')
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            response.headers['Location'].endswith('/teacher/dashboard')
+        )
+
+    def test_dashboard_shows_password_without_storing_it(self):
+        self.login('admin@test.com', 'adminpass')
+        self.client.post(
+            '/admin/teachers/add',
+            data={'name': 'Ada Obi', 'phone': '08031234567', 'class_name': ''},
+            follow_redirects=True,
+        )
+        body = self.client.get('/admin/dashboard').get_data(as_text=True)
+        self.assertIn('Staff login details', body)
+        self.assertIn('adasmc', body)
+
+    def test_no_plaintext_password_column_on_teacher(self):
+        self.login('admin@test.com', 'adminpass')
+        self.client.post(
+            '/admin/teachers/add',
+            data={'name': 'Ada Obi', 'phone': '08031234567', 'class_name': ''},
+            follow_redirects=True,
+        )
+        with self.app.app_context():
+            teacher = Teacher.query.filter_by(name='Ada Obi').first()
+            # the model must not carry a plaintext password field at all
+            self.assertNotIn('password', teacher.__table__.columns)
+            self.assertFalse(hasattr(teacher, 'password'))
+
+    def test_reset_restores_derived_password(self):
+        from werkzeug.security import check_password_hash
+        self.login('admin@test.com', 'adminpass')
+        self.client.post(
+            '/admin/teachers/add',
+            data={'name': 'Ada Obi', 'phone': '08031234567', 'class_name': ''},
+            follow_redirects=True,
+        )
+        with self.app.app_context():
+            teacher_id = Teacher.query.filter_by(name='Ada Obi').first().id
+            # change it to something else first
+            t = Teacher.query.get(teacher_id)
+            from werkzeug.security import generate_password_hash
+            t.user.password_hash = generate_password_hash('changed999')
+
+        self.client.post(f'/admin/teachers/{teacher_id}/reset-password')
+        with self.app.app_context():
+            t = Teacher.query.get(teacher_id)
+            self.assertTrue(check_password_hash(t.user.password_hash, 'adasmc'))

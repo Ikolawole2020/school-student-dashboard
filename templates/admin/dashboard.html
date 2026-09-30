@@ -86,4 +86,84 @@ block content %}
     </div>
   </div>
 </div>
+
+<!-- ============ staff login details ============ -->
+<div class="card border-0 shadow-sm mt-4">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span>
+      <i class="fa-solid fa-key me-2 text-primary"></i>Staff login details
+    </span>
+    <button class="btn btn-sm btn-outline-brand no-print" type="button"
+      onclick="document.querySelectorAll('.staff-secret').forEach(e=>e.classList.remove('d-none'))">
+      <i class="fa-solid fa-eye me-1"></i> Reveal passwords
+    </button>
+  </div>
+  <div class="card-body">
+    <p class="small text-muted">
+      Each teacher's password is the first three letters of their name plus
+      <code>smc</code> &mdash; so <strong>Ada Teacher</strong> signs in with
+      <code>adasmc</code>. Show it to them if they forget.
+    </p>
+
+    {% if staff %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Staff ID</th>
+            <th>Email</th>
+            <th>Class</th>
+            <th>Password</th>
+            <th class="no-print"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in staff %}
+          <tr>
+            <td class="fw-semibold">{{ s.name }}</td>
+            <td><span class="badge bg-light">{{ s.staff_id }}</span></td>
+            <td class="small">{{ s.email }}</td>
+            <td>
+              <span class="badge bg-primary">{{ s.class_name or 'No class' }}</span>
+            </td>
+            <td>
+              <code class="staff-secret d-none" style="font-size:.85rem;">{{ s.password }}</code>
+              <span class="staff-secret-mask text-muted">••••••</span>
+            </td>
+            <td class="text-end no-print">
+              <div class="d-inline-flex gap-1">
+                <a href="{{ url_for('admin.edit_teacher', id=s.id) }}" class="btn btn-action">
+                  <i class="fa-solid fa-edit"></i>
+                </a>
+                <form method="post" class="d-inline"
+                  action="{{ url_for('admin.reset_teacher_password', id=s.id) }}"
+                  onsubmit="return confirm('Reset {{ s.name }}'s password back to the name-derived one?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <button class="btn btn-action warning" title="Reset to the default password">
+                    <i class="fa-solid fa-rotate-left"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state py-4">
+      <i class="fa-solid fa-chalkboard-user"></i>
+      <h5>No staff yet</h5>
+      <p>Add a teacher and their login details will appear here.</p>
+      <a href="{{ url_for('admin.add_teacher') }}" class="btn btn-brand">
+        <i class="fa-solid fa-user-plus me-1"></i> Add teacher
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+
+
 {% endblock %}

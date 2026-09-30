@@ -124,6 +124,24 @@ def generate_password(length=10):
     return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
+def derive_staff_password(name):
+    """Build a staff password from the person's name: first three letters + 'smc'.
+
+    'Ada Teacher'      -> 'adasmc'
+    'Grace Chukwu'      -> 'grasmc'
+    'Bo' (short name)   -> 'bosmc'
+
+    The password is derived rather than stored, so the admin dashboard can
+    show it on demand by recomputing it from the name. That avoids keeping a
+    plaintext copy of anyone's password in the database.
+
+    Only the first name is used, so a surname change does not invalidate the
+    teacher's password. Names shorter than three letters use what is there.
+    """
+    cleaned = slugify_name(name)
+    return f'{cleaned[:3] or "staff"}smc'
+
+
 def grade_for(percentage):
     """Grade band used for both exam results and assignment scores."""
     if percentage >= 70:

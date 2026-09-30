@@ -21,6 +21,7 @@ from subjects import get_subjects_for_class
 from utils import (
     is_admin, save_upload, delete_upload, slugify_name,
     unique_staff_id, unique_email, generate_password, grade_for,
+    derive_staff_password,
 )
 from . import admin_bp
 
@@ -100,8 +101,24 @@ def dashboard():
     }
     # students sitting in no class at all - usually a data-entry gap
     unassigned = Student.query.filter(Student.class_id.is_(None)).count()
+
+    # Staff log-in details, recomputed from each name on every load so no
+    # plaintext password is ever written to the database.
+    staff = [
+        {
+            'id': t.id,
+            'name': t.name,
+            'staff_id': t.staff_id,
+            'email': t.email,
+            'class_name': t.class_name,
+            'password': derive_staff_password(t.name),
+        }
+        for t in Teacher.query.order_by(Teacher.name).all()
+    ]
+
     return render_template(
-        'admin/dashboard.html', counts=counts, unassigned=unassigned
+        'admin/dashboard.html', counts=counts, unassigned=unassigned,
+        staff=staff,
     )
 
 
@@ -440,7 +457,9 @@ def add_teacher():
         name = form.name.data.strip()
         staff_id = unique_staff_id(name)
         email = unique_email(name)
-        init_password = generate_password()
+        # deterministic, so it can be shown to the teacher on demand without
+        # ever storing it in the database
+        init_password = derive_staff_password(name)
 
         # class is optional - non-teaching staff simply leave it blank
         chosen = (form.class_name.data or '').strip()
@@ -479,7 +498,7 @@ def add_teacher():
         db.session.commit()
         flash(
             f'{name} added. Login: {email}  |  Staff ID: {staff_id}  |  '
-            f'Temporary password: {init_password}',
+            f'Password: {init_password}',
             'success',
         )
         return redirect(url_for('admin.teachers'))
@@ -580,12 +599,12 @@ def reset_teacher_password(id):
         flash('This teacher has no linked login account.', 'danger')
         return redirect(url_for('admin.teachers'))
 
-    new_password = generate_password()
+    new_password = derive_staff_password(teacher.name)
     teacher.user.password_hash = generate_password_hash(new_password)
     db.session.commit()
     flash(
         f'Password reset for {teacher.name}. '
-        f'New temporary password: {new_password}',
+        f'Their password is now: {new_password}',
         'success',
     )
     return redirect(url_for('admin.teachers'))

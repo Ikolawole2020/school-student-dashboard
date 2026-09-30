@@ -134,6 +134,30 @@ with app.app_context():
     else:
         print('assignment.class_id already nullable')
 
+    # clean up any table left behind by an interrupted rebuild
+    stale = [
+        r[0] for r in cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' "
+            "AND name LIKE '%\\_old' ESCAPE '\\'"
+        ).fetchall()
+    ]
+    for name in stale:
+        cursor.execute(f'DROP TABLE IF EXISTS {name}')
+        print(f'Dropped leftover table: {name}')
+
+    # user.must_change_password forces a school-issued password to be replaced
+    # at first login
+    user_cols = {
+        row[1] for row in cursor.execute('PRAGMA table_info(user)').fetchall()
+    }
+    if 'must_change_password' not in user_cols:
+        cursor.execute(
+            'ALTER TABLE user ADD COLUMN must_change_password BOOLEAN DEFAULT 0'
+        )
+        print('Added user.must_change_password')
+    else:
+        print('user.must_change_password already present')
+
     conn.commit()
 
     # create_all inside the app context has already made the new tables
@@ -146,6 +170,7 @@ with app.app_context():
         'assignment', 'assignment_score', 'assignment_media',
         'assignment_submission', 'assignment_submission_file',
         'lesson_plan', 'lesson_plan_image',
+        'attendance_record', 'holiday',
     ):
         print(f'{name}: {"present" if name in tables else "MISSING"}')
 

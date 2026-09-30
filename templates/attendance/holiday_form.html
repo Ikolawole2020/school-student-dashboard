@@ -1,0 +1,70 @@
+{% extends 'base.html' %} {% block title %}{{ 'Edit' if holiday else 'Add' }}
+Holiday{% endblock %} {% block content %}
+<div class="d-flex justify-content-center py-4">
+  <div class="card border-0 shadow w-100 page-form-card">
+    <div class="card-body p-4">
+      <div class="page-header mb-4">
+        <span class="accent-bar"></span>
+        <h3>
+          <i class="fa-solid fa-star me-2 text-primary"></i>
+          {{ 'Edit Holiday' if holiday else 'Add a Holiday' }}
+        </h3>
+        <p class="page-subtitle">
+          The register page will warn teachers before they mark attendance on
+          this date.
+        </p>
+      </div>
+
+      <form method="post">
+        {{ form.csrf_token }}
+        <div class="row g-3">
+          <div class="col-12">
+            <label for="name" class="form-label">Holiday name</label>
+            {{ form.name(class="form-control", placeholder="e.g. Nigeria Independence Day") }}
+            {% for e in form.name.errors %}
+            <div class="text-danger small mt-1">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="col-md-6">
+            <label for="holiday_date" class="form-label">Date</label>
+            {{ form.holiday_date(class="form-control", placeholder="YYYY-MM-DD") }}
+            {% for e in form.holiday_date.errors %}
+            <div class="text-danger small mt-1">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label d-block">Type</label>
+            <div class="form-check form-switch mt-2">
+              {{ form.is_public(class="form-check-input", role="switch") }}
+              <label class="form-check-label" for="is_public">
+                {{ form.is_public.label.text }}
+              </label>
+            </div>
+            <div class="form-text">
+              Turn this off for school-internal closures such as mid-term
+              break or exam week.
+            </div>
+          </div>
+
+          <div class="col-12">
+            <label for="description" class="form-label">
+              Description <span class="text-muted">(optional)</span>
+            </label>
+            {{ form.description(class="form-control", rows="4", placeholder="Explain why the school is closed, and any arrangements for students.") }}
+            {% for e in form.description.errors %}
+            <div class="text-danger small mt-1">{{ e }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+          {{ form.submit(class="btn btn-brand px-4") }}
+          <a href="{{ url_for('attendance.holidays') }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

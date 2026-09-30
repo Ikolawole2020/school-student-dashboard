@@ -2,7 +2,7 @@
 from flask_wtf import FlaskForm
 from wtforms import (
     StringField, PasswordField, SubmitField, SelectField, DateField,
-    FloatField, FileField, TextAreaField, MultipleFileField,
+    FloatField, FileField, TextAreaField, MultipleFileField, BooleanField,
 )
 from wtforms.validators import (
     DataRequired, Email, Length, Optional, NumberRange, Regexp, EqualTo,
@@ -320,6 +320,50 @@ class SubmissionForm(FlaskForm):
         validators=[DataRequired(message='Please attach at least one image.')],
     )
     submit = SubmitField('Submit answer')
+
+
+# --------------------------------------------------------------- attendance
+
+ATTENDANCE_STATUSES = [
+    ('present', 'Present'),
+    ('absent', 'Absent'),
+    ('late', 'Late'),
+    ('excused', 'Excused'),
+]
+
+ATTENDANCE_ICONS = {
+    'present': 'fa-user-check',
+    'absent': 'fa-user-xmark',
+    'late': 'fa-user-clock',
+    'excused': 'fa-user-shield',
+}
+
+
+class AttendanceForm(FlaskForm):
+    """One day's register for one class."""
+
+    record_date = DateField(
+        'Date', format='%Y-%m-%d', validators=[DataRequired()]
+    )
+    submit = SubmitField('Save register')
+
+
+class HolidayForm(FlaskForm):
+    """Create or edit a public holiday or school closure."""
+
+    name = StringField(
+        'Holiday name', validators=[DataRequired(), Length(max=120)]
+    )
+    holiday_date = DateField(
+        'Date', format='%Y-%m-%d', validators=[DataRequired()]
+    )
+    is_public = BooleanField(
+        'This is a public (national) holiday', default=True
+    )
+    description = TextAreaField(
+        'Description', validators=[Optional(), Length(max=1000)]
+    )
+    submit = SubmitField('Save holiday')
 
 
 class LessonPlanForm(FlaskForm):

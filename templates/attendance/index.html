@@ -1,0 +1,108 @@
+{% extends 'base.html' %} {% block title %}Attendance{% endblock %} {% block
+content %}
+<div class="page-header fade-in">
+  <span class="accent-bar"></span>
+  <h2><i class="fa-solid fa-clipboard-check me-2 text-primary"></i>Attendance</h2>
+  <p class="page-subtitle">Mark your class register each school day</p>
+</div>
+
+{% if holiday %}
+<div class="alert alert-warning">
+  <i class="fa-solid fa-star me-2"></i>
+  <strong>Today is {{ holiday.name }}</strong>
+  {%- if holiday.description %} — {{ holiday.description }}{% endif %}
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header">
+        <i class="fa-solid fa-school me-2 text-primary"></i>
+        {% if current_user.role == 'admin' %}Choose a class{% else %}Your class{% endif %}
+      </div>
+      <div class="card-body">
+        {% if classes %}
+        <div class="d-grid gap-2">
+          {% for c in classes %}
+          <a href="{{ url_for('attendance.register', class_id=c.id) }}"
+            class="d-flex align-items-center gap-3 p-3 rounded text-decoration-none"
+            style="border:1px solid var(--line);background:var(--surface-2);color:var(--ink);transition:all .18s ease;"
+            onmouseover="this.style.borderColor='var(--brand-400)';this.style.transform='translateY(-2px)'"
+            onmouseout="this.style.borderColor='var(--line)';this.style.transform='none'">
+            <span class="stat-icon bg-primary" style="width:44px;height:44px;font-size:1.05rem">
+              <i class="fa-solid fa-school"></i>
+            </span>
+            <span class="flex-grow-1">
+              <span class="fw-semibold d-block" style="color:var(--ink)">{{ c.class_name }}</span>
+              <small class="text-muted">
+                {{ c.class_students | length }} student(s)
+                {%- if c.teacher %} · {{ c.teacher.name }}{% endif %}
+              </small>
+            </span>
+            <i class="fa-solid fa-chevron-right text-muted"></i>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state py-4">
+          <i class="fa-solid fa-school"></i>
+          <h5>No class assigned</h5>
+          <p>
+            You are not the class teacher of any class yet, so there is no
+            register to mark. An administrator can assign you one.
+          </p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fa-solid fa-star me-2 text-primary"></i>Upcoming holidays</span>
+        <a href="{{ url_for('attendance.holidays') }}" class="small">View all</a>
+      </div>
+      <div class="card-body">
+        {% if upcoming %}
+        <div class="d-grid gap-2">
+          {% for h in upcoming %}
+          <div class="d-flex align-items-start gap-3">
+            <div class="holiday-date-badge">
+              <span class="dow">{{ h.holiday_date.strftime('%a') }}</span>
+              <span class="dom">{{ h.holiday_date.strftime('%d') }}</span>
+            </div>
+            <div class="flex-grow-1 min-w-0">
+              <div class="fw-semibold">{{ h.name }}</div>
+              <small class="text-muted">
+                {{ h.holiday_date | friendly_date }}
+                · {{ 'Public holiday' if h.is_public else 'School closure' }}
+              </small>
+              {% if h.description %}
+              <div class="small text-muted mt-1">{{ h.description }}</div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state py-4">
+          <i class="fa-solid fa-calendar"></i>
+          <h5>No holidays set</h5>
+          {% if current_user.role == 'admin' %}
+          <p>Add public holidays and school closures so nobody marks a
+            register on a day off.</p>
+          <a href="{{ url_for('attendance.add_holiday') }}" class="btn btn-brand">
+            <i class="fa-solid fa-plus me-1"></i> Add a holiday
+          </a>
+          {% else %}
+          <p>No holidays have been added to the calendar yet.</p>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

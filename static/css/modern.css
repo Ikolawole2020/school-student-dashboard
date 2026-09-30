@@ -1113,3 +1113,98 @@ input[type="file"].form-control::file-selector-button:hover {
     body.nav-open { position: fixed; width: 100%; overflow: hidden; }
   }
 }
+
+/* ============================================================
+   Attendance register controls
+   ============================================================ */
+
+.att-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--r-full);
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-3);
+  font-size: 0.79rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--speed) var(--ease);
+}
+.att-btn:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+.att-btn:has(input:focus-visible) {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+}
+
+.att-present:has(input:checked) {
+  background: var(--brand-500); border-color: var(--brand-500); color: #fff;
+}
+.att-absent:has(input:checked) {
+  background: #ef4444; border-color: #ef4444; color: #fff;
+}
+.att-late:has(input:checked) {
+  background: #f59e0b; border-color: #f59e0b; color: #422006;
+}
+.att-excused:has(input:checked) {
+  background: #0ea5e9; border-color: #0ea5e9; color: #fff;
+}
+
+/* fall back for browsers without :has() support */
+.att-btn input:checked ~ span,
+.att-btn:has(input:checked) { font-weight: 700; }
+.att-present.is-on { background: var(--brand-500); border-color: var(--brand-500); color: #fff; }
+.att-absent.is-on  { background: #ef4444; border-color: #ef4444; color: #fff; }
+.att-late.is-on    { background: #f59e0b; border-color: #f59e0b; color: #422006; }
+.att-excused.is-on { background: #0ea5e9; border-color: #0ea5e9; color: #fff; }
+
+/* holiday cards */
+.holiday-card {
+  border-left: 4px solid var(--brand-500);
+  transition: all var(--speed) var(--ease);
+}
+.holiday-card.internal { border-left-color: #f59e0b; }
+.holiday-card:hover { transform: translateY(-2px); box-shadow: var(--e-2); }
+.holiday-card.past { opacity: .62; }
+
+.holiday-date-badge {
+  width: 58px; height: 58px;
+  border-radius: var(--r-md);
+  background: var(--brand-50);
+  color: var(--brand-700);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  flex-shrink: 0; line-height: 1.1;
+}
+.holiday-date-badge .dow { font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; }
+.holiday-date-badge .dom { font-size: 1.3rem; font-weight: 800; }
+.holiday-card.internal .holiday-date-badge {
+  background: #fef3c7; color: #92400e;
+}
+
+/* attendance stat strip */
+.att-strip { display: flex; gap: .5rem; flex-wrap: wrap; }
+.att-stat {
+  flex: 1 1 110px;
+  border-radius: var(--r-md);
+  padding: .75rem .9rem;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  text-align: center;
+}
+.att-stat .n { font-size: 1.4rem; font-weight: 800; line-height: 1.1; color: var(--ink); }
+.att-stat .l { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); font-weight: 600; }
+.att-stat.present { background: var(--brand-50); border-color: var(--brand-200); }
+.att-stat.present .n { color: var(--brand-700); }
+.att-stat.absent  { background: #fef2f2; border-color: #fecaca; }
+.att-stat.absent .n  { color: #b91c1c; }
+.att-stat.late    { background: #fffbeb; border-color: #fde68a; }
+.att-stat.late .n    { color: #b45309; }
+.att-stat.excused { background: #f0f9ff; border-color: #bae6fd; }
+.att-stat.excused .n { color: #0369a1; }

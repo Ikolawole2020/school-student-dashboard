@@ -57,7 +57,14 @@ def logout():
 @auth_bp.route('/change-password', methods=['GET', 'POST'])
 @login_required
 def change_password():
-    """Lets any account replace the auto-generated initial password."""
+    """Lets any account replace a school-issued password.
+
+    Accounts created with a derived or generated password are flagged
+    must_change_password, and app.py bounces them here until they set their own.
+    """
+    first_login = bool(request.args.get('first_login')) or bool(
+        getattr(current_user, 'must_change_password', False)
+    )
     form = ChangePasswordForm()
     if form.validate_on_submit():
         if not check_password_hash(current_user.password_hash, form.current_password.data):
@@ -66,10 +73,16 @@ def change_password():
             flash('The new password must be different from the old one.', 'warning')
         else:
             current_user.password_hash = generate_password_hash(form.new_password.data)
+            # the school-issued password has now been replaced
+            current_user.must_change_password = False
             db.session.commit()
             flash('Password updated successfully.', 'success')
+            if first_login:
+                flash('You can now use the rest of the portal.', 'info')
             return redirect(_home_for(current_user))
-    return render_template('auth/change_password.html', form=form)
+    return render_template(
+        'auth/change_password.html', form=form, first_login=first_login
+    )
 
 
 @auth_bp.route('/register-student', methods=['GET', 'POST'])

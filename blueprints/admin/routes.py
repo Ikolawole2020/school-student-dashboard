@@ -177,6 +177,9 @@ def add_student():
             email=email,
             password_hash=generate_password_hash(init_password),
             role='student',
+            # only when the school generated the password, not when the
+            # student typed their own at registration
+            must_change_password=(not form.password.data),
         )
         db.session.add(user)
         db.session.flush()
@@ -349,6 +352,7 @@ def reset_student_password(id):
 
     new_password = generate_password()
     student.user.password_hash = generate_password_hash(new_password)
+    student.user.must_change_password = True
     db.session.commit()
     flash(
         f'Password reset for {student.name}. '
@@ -472,6 +476,8 @@ def add_teacher():
             email=email,
             password_hash=generate_password_hash(init_password),
             role='teacher',
+            # the name-derived password is temporary; the teacher picks their own
+            must_change_password=True,
         )
         db.session.add(user)
         db.session.flush()
@@ -601,6 +607,8 @@ def reset_teacher_password(id):
 
     new_password = derive_staff_password(teacher.name)
     teacher.user.password_hash = generate_password_hash(new_password)
+    # a reset puts them back on the school-issued password
+    teacher.user.must_change_password = True
     db.session.commit()
     flash(
         f'Password reset for {teacher.name}. '

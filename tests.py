@@ -13,6 +13,7 @@ database is never opened.
 import os
 import tempfile
 import unittest
+from datetime import date
 
 os.environ.setdefault('SECRET_KEY', 'test-secret-key')
 
@@ -24,7 +25,10 @@ from werkzeug.security import generate_password_hash
 
 from app import create_app
 from extensions import db
-from models import User, Student, Teacher, Class, Assignment, LessonPlan
+from models import (
+    User, Student, Teacher, Class, Assignment, LessonPlan,
+    AttendanceRecord, Holiday,
+)
 
 _REAL_DB_MARKER = os.path.join('instance', 'starlight.db')
 
@@ -138,17 +142,36 @@ class BaseCase(unittest.TestCase):
     def logout(self):
         self.client.get('/auth/logout')
 
-    def set_password(self, teacher_name, password):
+    def set_password(self, teacher_name, password, clear_first_login_flag=True):
         """Force a known password on a teacher, since the real one is only
-        ever shown once in a flash message."""
+        ever shown once in a flash message.
+
+        Clears must_change_password by default, so tests that just need to act
+        as a settled user are not bounced to the password screen. Tests about
+        the first-login rule pass clear_first_login_flag=False.
+        """
         from werkzeug.security import generate_password_hash
         with self.app.app_context():
             teacher = Teacher.query.filter(
                 Teacher.name == teacher_name
             ).first()
             teacher.user.password_hash = generate_password_hash(password)
+            if clear_first_login_flag:
+                teacher.user.must_change_password = False
             db.session.commit()
             return teacher.email
+
+    def complete_first_login(self, password='myownpassword'):
+        """Get past the forced password change the way a real user would."""
+        return self.client.post(
+            '/auth/change-password',
+            data={
+                'current_password': 'knownpass123',
+                'new_password': password,
+                'confirm_password': password,
+            },
+            follow_redirects=True,
+        )
 
 
 class TestPublicAndAuth(BaseCase):
@@ -795,3 +818,271 @@ class TestDerivedStaffPassword(BaseCase):
         with self.app.app_context():
             t = Teacher.query.get(teacher_id)
             self.assertTrue(check_password_hash(t.user.password_hash, 'adasmc'))
+
+
+class TestAttendance(BaseCase):
+    """Teachers mark a daily register; students see only their own record."""
+
+    def _mark(self, when, statuses, class_id=None):
+        data = {'record_date': when.isoformat()}
+        for sid, status in statuses.items():
+            data[f'status_{sid}'] = status
+        return self.client.post(
+            f'/attendance/register/{class_id or self.class_a_id}',
+            data=data, follow_redirects=True,
+        )
+
+    def test_teacher_can_mark_attendance(self):
+        self.login('ada@test.com', 'teachpass')
+        response = self._mark(date.today(), {self.student_a_id: 'present'})
+        self.assertIn('Register saved', response.get_data(as_text=True))
+        with self.app.app_context():
+            rows = AttendanceRecord.query.all()
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0].status, 'present')
+            self.assertEqual(rows[0].class_id, self.class_a_id)
+
+    def test_remark_is_saved(self):
+        self.login('ada@test.com', 'teachpass')
+        self.client.post(
+            f'/attendance/register/{self.class_a_id}',
+            data={
+                'record_date': date.today().isoformat(),
+                f'status_{self.student_a_id}': 'absent',
+                f'remark_{self.student_a_id}': 'Medical appointment',
+            },
+            follow_redirects=True,
+        )
+        with self.app.app_context():
+            row = AttendanceRecord.query.filter_by(
+                student_id=self.student_a_id
+            ).first()
+            self.assertEqual(row.remark, 'Medical appointment')
+
+    def test_marking_twice_updates_rather_than_duplicates(self):
+        self.login('ada@test.com', 'teachpass')
+        self._mark(date.today(), {self.student_a_id: 'absent'})
+        self._mark(date.today(), {self.student_a_id: 'present'})
+        with self.app.app_context():
+            rows = AttendanceRecord.query.filter_by(
+                student_id=self.student_a_id
+            ).all()
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0].status, 'present')
+
+    def test_untouched_students_keep_their_previous_mark(self):
+        """Correcting one pupil must not wipe the rest of the register."""
+        with self.app.app_context():
+            # a second student in the same class, so both are on the register
+            u = User(email='zoe@test.com',
+                     password_hash=generate_password_hash('studpass'),
+                     role='student')
+            db.session.add(u)
+            db.session.flush()
+            other = Student(
+                user_id=u.id, student_public_id='zoes', name='Zoe Second',
+                email='zoe@test.com', gender='Female', class_id=self.class_a_id,
+            )
+            db.session.add(other)
+            db.session.commit()
+            other_id = other.id
+
+        self.login('ada@test.com', 'teachpass')
+        self._mark(date.today(), {
+            self.student_a_id: 'present', other_id: 'late',
+        })
+        # second pass mentions only the first student
+        self.client.post(
+            f'/attendance/register/{self.class_a_id}',
+            data={
+                'record_date': date.today().isoformat(),
+                f'status_{self.student_a_id}': 'absent',
+            },
+            follow_redirects=True,
+        )
+        with self.app.app_context():
+            untouched = AttendanceRecord.query.filter_by(
+                student_id=other_id
+            ).first()
+            self.assertIsNotNone(untouched)
+            self.assertEqual(untouched.status, 'late')
+
+    def test_teacher_cannot_mark_another_class(self):
+        self.login('ada@test.com', 'teachpass')
+        response = self.client.get(
+            f'/attendance/register/{self.class_b_id}'
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_student_sees_own_attendance_only(self):
+        self.login('ada@test.com', 'teachpass')
+        self._mark(date.today(), {self.student_a_id: 'absent'})
+        self.logout()
+
+        self.login('amys@test.com', 'studpass')
+        body = self.client.get('/attendance/my').get_data(as_text=True)
+        self.assertIn('Amy', body)
+        # a student has no register page
+        self.assertEqual(
+            self.client.get(f'/attendance/register/{self.class_a_id}').status_code,
+            403,
+        )
+
+    def test_summary_counts_late_and_excused_as_in_school(self):
+        from utils import attendance_summary
+
+        class R:
+            def __init__(self, s):
+                self.status = s
+        summary = attendance_summary([R('present'), R('absent'), R('late'), R('excused')])
+        self.assertEqual(summary['counts']['absent'], 1)
+        self.assertEqual(summary['total'], 4)
+        self.assertEqual(summary['in_school'], 3)
+        self.assertEqual(summary['percentage'], 75.0)
+
+    def test_admin_can_mark_any_class(self):
+        self.login('admin@test.com', 'adminpass')
+        response = self._mark(
+            date.today(), {self.student_b_id: 'present'}, class_id=self.class_b_id
+        )
+        self.assertEqual(response.status_code, 200)
+
+
+class TestHolidays(BaseCase):
+    def test_admin_can_add_holiday_with_description(self):
+        self.login('admin@test.com', 'adminpass')
+        response = self.client.post(
+            '/attendance/holidays/add',
+            data={
+                'name': 'Nigeria Independence Day',
+                'holiday_date': '2026-10-01',
+                'is_public': 'y',
+                'description': 'School closed all day.',
+            },
+            follow_redirects=True,
+        )
+        self.assertIn('Nigeria Independence Day', response.get_data(as_text=True))
+        with self.app.app_context():
+            h = Holiday.query.first()
+            self.assertEqual(h.name, 'Nigeria Independence Day')
+            self.assertTrue(h.is_public)
+            self.assertEqual(h.description, 'School closed all day.')
+
+    def test_teacher_can_view_holidays(self):
+        self.login('admin@test.com', 'adminpass')
+        self.client.post(
+            '/attendance/holidays/add',
+            data={'name': 'Mid-Term Break', 'holiday_date': '2026-08-05',
+                  'description': 'A week off.'},
+            follow_redirects=True,
+        )
+        self.logout()
+        self.login('ada@test.com', 'teachpass')
+        self.assertEqual(
+            self.client.get('/attendance/holidays').status_code, 200
+        )
+
+    def test_teacher_cannot_create_holiday(self):
+        self.login('ada@test.com', 'teachpass')
+        self.assertEqual(
+            self.client.get('/attendance/holidays/add').status_code, 403
+        )
+
+    def test_holiday_warns_on_the_register_page(self):
+        self.login('admin@test.com', 'adminpass')
+        today = date.today().isoformat()
+        self.client.post(
+            '/attendance/holidays/add',
+            data={'name': 'Test Holiday', 'holiday_date': today,
+                  'description': 'Closed.'},
+            follow_redirects=True,
+        )
+        body = self.client.get(
+            f'/attendance/register/{self.class_a_id}'
+        ).get_data(as_text=True)
+        self.assertIn('Test Holiday', body)
+
+
+class TestFirstLoginPassword(BaseCase):
+    """A school-issued password must be replaced before normal use."""
+
+    def test_teacher_is_forced_to_change_password(self):
+        self.login('admin@test.com', 'adminpass')
+        self.client.post(
+            '/admin/teachers/add',
+            data={'name': 'Ada Obi', 'phone': '08031234567', 'class_name': ''},
+            follow_redirects=True,
+        )
+        with self.app.app_context():
+            teacher = Teacher.query.filter_by(name='Ada Obi').first()
+            self.assertTrue(teacher.user.must_change_password)
+            email = teacher.email
+        self.logout()
+
+        self.login(email, 'adasmc')
+        # every page redirects to the change-password screen
+        for path in ('/teacher/dashboard', '/lessons/', '/assignments/'):
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 302)
+            self.assertIn('change-password', response.headers['Location'])
+
+    def test_changing_the_password_releases_the_account(self):
+        self.login('admin@test.com', 'adminpass')
+        self.client.post(
+            '/admin/teachers/add',
+            data={'name': 'Ada Obi', 'phone': '08031234567', 'class_name': ''},
+            follow_redirects=True,
+        )
+        with self.app.app_context():
+            email = Teacher.query.filter_by(name='Ada Obi').first().email
+        self.logout()
+        self.login(email, 'adasmc')
+
+        self.client.post(
+            '/auth/change-password',
+            data={
+                'current_password': 'adasmc',
+                'new_password': 'myownsecret',
+                'confirm_password': 'myownsecret',
+            },
+            follow_redirects=True,
+        )
+        with self.app.app_context():
+            user = User.query.filter_by(email=email).first()
+            self.assertFalse(user.must_change_password)
+        # now the dashboard is reachable
+        self.assertEqual(
+            self.client.get('/teacher/dashboard').status_code, 200
+        )
+
+    def test_logout_is_always_reachable_while_forced(self):
+        self.login('admin@test.com', 'adminpass')
+        self.client.post(
+            '/admin/teachers/add',
+            data={'name': 'Ada Obi', 'phone': '08031234567', 'class_name': ''},
+            follow_redirects=True,
+        )
+        with self.app.app_context():
+            email = Teacher.query.filter_by(name='Ada Obi').first().email
+        self.logout()
+        self.login(email, 'adasmc')
+        # the change-password page itself must not redirect to itself
+        self.assertEqual(
+            self.client.get('/auth/change-password').status_code, 200
+        )
+
+    def test_self_registration_is_not_forced(self):
+        """A student who types their own password should not be nagged."""
+        self.client.post(
+            '/auth/register-student',
+            data={
+                'name': 'Chidi Nwosu', 'gender': 'Male', 'class_name': 'JSS1',
+                'department': '', 'guardian_phone': '08099887766',
+                'password': 'myownpassword',
+            },
+            follow_redirects=True,
+        )
+        self.login('chidinwosu@smc.com', 'myownpassword')
+        self.assertEqual(
+            self.client.get('/student/dashboard').status_code, 200
+        )

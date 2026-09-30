@@ -153,3 +153,46 @@ def grade_for(percentage):
     if percentage >= 45:
         return 'D'
     return 'F'
+
+
+# -------------------------------------------------------------- attendance
+
+def attendance_summary(records):
+    """Turn a list of AttendanceRecord rows into counts and a percentage.
+
+    Late and excused count as being in school, so they do not count against
+    attendance; only 'absent' does.
+    """
+    counts = {'present': 0, 'absent': 0, 'late': 0, 'excused': 0}
+    for r in records or []:
+        if r.status in counts:
+            counts[r.status] += 1
+
+    total = sum(counts.values())
+    # "in school" = everything except a plain absence
+    in_school = total - counts['absent']
+    percentage = round(in_school / total * 100, 1) if total else 0.0
+    return {
+        'counts': counts,
+        'total': total,
+        'in_school': in_school,
+        'percentage': percentage,
+    }
+
+
+def holiday_on(when):
+    """Return the Holiday falling on a given date, or None."""
+    from models import Holiday
+    return Holiday.query.filter_by(holiday_date=when).first()
+
+
+def upcoming_holidays(limit=5):
+    """Holidays from today onwards, soonest first."""
+    from datetime import date
+    from models import Holiday
+    return (
+        Holiday.query.filter(Holiday.holiday_date >= date.today())
+        .order_by(Holiday.holiday_date.asc())
+        .limit(limit)
+        .all()
+    )

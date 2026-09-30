@@ -1,0 +1,176 @@
+{% extends 'base.html' %} {% block title %}Attendance - {{ cls.class_name }}{%
+endblock %} {% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <a href="{{ url_for('attendance.index') }}" class="text-decoration-none small">
+      <i class="fa-solid fa-arrow-left me-1"></i>All classes
+    </a>
+    <h2 class="mt-2 mb-1">
+      <i class="fa-solid fa-clipboard-check me-2 text-primary"></i>
+      {{ cls.class_name }} register
+    </h2>
+    <p class="page-subtitle mb-0">
+      {{ chosen | friendly_date }}
+      {% if marked_count %}
+      · <span class="text-success fw-semibold">
+          {{ marked_count }} of {{ students | length }} marked
+        </span>
+      {% else %}
+      · not yet marked
+      {% endif %}
+    </p>
+  </div>
+
+  {% if marked_count %}
+  <form method="post" action="{{ url_for('attendance.delete_register', class_id=cls.id) }}"
+    onsubmit="return confirm('Clear the whole register for {{ chosen | friendly_date }}?');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <input type="hidden" name="record_date" value="{{ chosen.isoformat() }}" />
+    <button class="btn btn-outline-danger btn-sm">
+      <i class="fa-solid fa-trash me-1"></i> Clear this day
+    </button>
+  </form>
+  {% endif %}
+</div>
+
+{% if holiday %}
+<div class="alert alert-warning">
+  <i class="fa-solid fa-star me-2"></i>
+  <strong>{{ holiday.name }}</strong> — {{ holiday.description or 'School closed.' }}
+  Marking is still allowed, in case this was a normal teaching day.
+</div>
+{% endif %}
+
+{% if students %}
+<form method="post" id="registerForm">
+  {{ form.csrf_token }}
+  <input type="hidden" name="record_date" value="{{ chosen.isoformat() }}" />
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-sm-4 col-lg-3">
+          <label class="form-label mb-1" for="datePicker">Date</label>
+          <input type="date" id="datePicker" class="form-control"
+            value="{{ chosen.isoformat() }}"
+            onchange="location.href='{{ url_for('attendance.register', class_id=cls.id) }}?record_date='+this.value" />
+        </div>
+        <div class="col-sm-8 col-lg-5">
+          <label class="form-label mb-1">Set everyone at once</label>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-brand flex-fill"
+              onclick="setAll('present')">
+              <i class="fa-solid fa-user-check me-1"></i> All present
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary flex-fill"
+              onclick="setAll('absent')">
+              <i class="fa-solid fa-user-xmark me-1"></i> All absent
+            </button>
+          </div>
+        </div>
+        <div class="col-lg-4 text-lg-end">
+          <button class="btn btn-brand w-100" type="submit">
+            <i class="fa-solid fa-floppy-disk me-1"></i> Save register
+          </button>
+        </div>
+      </div>
+
+      {% if yesterday %}
+      <div class="small text-muted mt-2 pt-2 border-top">
+        <i class="fa-solid fa-copy me-1"></i>
+        Yesterday was marked for {{ yesterday | length }} student(s) — loaded
+        below as the starting point.
+      </div>
+      {% endif %}
+
+  <div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th style="width:44px">#</th>
+            <th>Student</th>
+            <th class="text-center" style="width:340px">Status</th>
+            <th style="width:200px">Remark</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in students %}
+          {% set rec = existing.get(s.id) %}
+          {% set yest = yesterday.get(s.id) %}
+          {% set cur = rec.status if rec else (yest.status if yest else '') %}
+          <tr>
+            <td class="text-muted small">{{ loop.index }}</td>
+            <td>
+              <div class="fw-semibold">{{ s.name }}</div>
+              <small class="text-muted">{{ s.student_public_id }}</small>
+              {% if rec %}<span class="badge bg-light ms-1">saved</span>{% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1 flex-wrap justify-content-center" role="radiogroup"
+                aria-label="Attendance for {{ s.name }}">
+                {% for value, label in statuses %}
+                <label class="att-btn att-{{ value }}">
+                  <input type="radio" name="status_{{ s.id }}" value="{{ value }}"
+                    class="visually-hidden"
+                    {% if cur == value %}checked{% endif %} />
+                  <i class="fa-solid {{ icons[value] }}" aria-hidden="true"></i>
+                  <span>{{ label }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </td>
+            <td>
+              <input type="text" name="remark_{{ s.id }}" class="form-control form-control-sm"
+                maxlength="200" placeholder="Optional"
+                value="{{ rec.remark if rec else '' }}" />
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer bg-transparent border-top d-flex flex-wrap gap-2 align-items-center">
+      <button class="btn btn-brand" type="submit">
+        <i class="fa-solid fa-floppy-disk me-1"></i> Save register
+      </button>
+      <a href="{{ url_for('attendance.index') }}" class="btn btn-outline-secondary">Cancel</a>
+      {% if summary.total %}
+      <div class="ms-auto small text-muted">
+        <span class="badge bg-success">{{ summary.counts.present }} present</span>
+        <span class="badge bg-danger">{{ summary.counts.absent }} absent</span>
+        <span class="badge bg-warning text-dark">{{ summary.counts.late }} late</span>
+        <span class="badge bg-info">{{ summary.counts.excused }} excused</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</form>
+{% else %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <div class="empty-state">
+      <i class="fa-solid fa-user-group"></i>
+      <h5>No students in {{ cls.class_name }}</h5>
+      <p>Add students to this class and the register will appear here.</p>
+      <a href="{{ url_for('admin.add_student') }}" class="btn btn-brand">
+        <i class="fa-solid fa-user-plus me-1"></i> Add a student
+      </a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% block scripts %}
+<script>
+  function setAll(status) {
+    document.querySelectorAll('input[type=radio][name^="status_"]').forEach(function (r) {
+      if (r.value === status) { r.checked = true; }
+    });
+  }
+</script>
+{% endblock %}
+{% endblock %}
+
+    </div>
+  </div>

@@ -9,6 +9,10 @@ class User(db.Model, UserMixin):
     password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(20), default='student')  # 'admin','teacher','student'
     is_active = db.Column(db.Boolean, default=True)
+    # Set when an account is created with a school-issued password (derived
+    # from the name, or generated). The user must replace it before they can
+    # reach the rest of the app.
+    must_change_password = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Student(db.Model):
@@ -146,6 +150,51 @@ class AssignmentSubmissionFile(db.Model):
     )
     filename = db.Column(db.String(200), nullable=False)
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class AttendanceRecord(db.Model):
+    """One student's attendance on one day, for one class.
+
+    Unique per (student, date) so a register is never double-counted; marking
+    again simply updates the status.
+    """
+    __table_args__ = (
+        db.UniqueConstraint('student_id', 'record_date', name='uq_attendance_student_day'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=True)
+    record_date = db.Column(db.Date, nullable=False)
+    # 'present' | 'absent' | 'late' | 'excused'
+    status = db.Column(db.String(10), default='present', nullable=False)
+    remark = db.Column(db.String(200))
+    marked_by = db.Column(db.Integer, db.ForeignKey('teacher.id'), nullable=True)
+    marked_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    student = db.relationship('Student', backref='attendance_records')
+    class_rel = db.relationship('Class', backref='attendance_records')
+    marker = db.relationship('Teacher', backref='attendance_marked')
+
+
+class Holiday(db.Model):
+    """A school holiday, public or internal.
+
+    Stored once so the calendar, dashboards and the attendance register can all
+    refer to the same record instead of each inventing its own.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    holiday_date = db.Column(db.Date, nullable=False)
+    # True for national/public holidays, False for school-internal closures
+    is_public = db.Column(db.Boolean, default=True, nullable=False)
+    description = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def is_upcoming(self):
+        from datetime import date
+        return self.holiday_date >= date.today()
 
 class AssignmentScore(db.Model):
     """A single student's score for one assignment. Nullable so a student

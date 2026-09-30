@@ -35,6 +35,10 @@
         class="nav-link {% if request.path == '/check-result' %}active{% endif %}">
         <i class="fa-solid fa-magnifying-glass-chart"></i><span>Check Result</span>
       </a>
+      <a href="/attendance/holidays"
+        class="nav-link {% if request.path.startswith('/attendance/holidays') %}active{% endif %}">
+        <i class="fa-solid fa-star"></i><span>Holidays</span>
+      </a>
       {% endif %}
     </div>
 
@@ -65,6 +69,9 @@
       <a href="/lessons/" class="nav-link {% if request.path.startswith('/lessons') %}active{% endif %}">
         <i class="fa-solid fa-book-open"></i><span>Lesson Plans</span>
       </a>
+      <a href="/attendance/" class="nav-link {% if request.path.startswith('/attendance') %}active{% endif %}">
+        <i class="fa-solid fa-clipboard-check"></i><span>Attendance</span>
+      </a>
     </div>
 
 
@@ -78,6 +85,9 @@
       </a>
       <a href="/lessons/" class="nav-link {% if request.path.startswith('/lessons') %}active{% endif %}">
         <i class="fa-solid fa-book-open"></i><span>Lesson Plans</span>
+      </a>
+      <a href="/attendance/" class="nav-link {% if request.path.startswith('/attendance') %}active{% endif %}">
+        <i class="fa-solid fa-clipboard-check"></i><span>Attendance</span>
       </a>
       <a href="/assignments/" class="nav-link {% if request.path.startswith('/assignments') %}active{% endif %}">
         <i class="fa-solid fa-clipboard-list"></i><span>Assignment Hub</span>
@@ -96,6 +106,9 @@
         <i class="fa-solid fa-clipboard-list"></i><span>Assignments</span>
       </a>
       <a href="/student/results" class="nav-link {% if request.path == '/student/results' %}active{% endif %}">
+      <a href="/attendance/" class="nav-link {% if request.path.startswith('/attendance') %}active{% endif %}">
+        <i class="fa-solid fa-clipboard-check"></i><span>My Attendance</span>
+      </a>
         <i class="fa-solid fa-chart-line"></i><span>My Results</span>
       </a>
       <a href="/student/profile" class="nav-link {% if request.path == '/student/profile' %}active{% endif %}">

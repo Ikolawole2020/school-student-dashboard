@@ -15,6 +15,7 @@ from blueprints.admin import admin_bp
 from blueprints.teacher import teacher_bp
 from blueprints.assignments import assignments_bp
 from blueprints.lessons import lessons_bp
+from blueprints.attendance import attendance_bp
 
 
 def create_app():
@@ -35,6 +36,26 @@ def create_app():
     def unauthorized():
         flash('Please log in to continue.', 'warning')
         return redirect(url_for('auth.login'))
+
+    # Accounts created with a school-issued password (derived from the name,
+    # or generated) must replace it before they can use the rest of the app.
+    @app.before_request
+    def force_password_change():
+        from flask_login import current_user
+        if not current_user.is_authenticated:
+            return None
+        if not getattr(current_user, 'must_change_password', False):
+            return None
+
+        allowed = {
+            'auth.change_password', 'auth.logout', 'static',
+        }
+        if request.endpoint in allowed:
+            return None
+        # never trap them in a redirect loop
+        if request.endpoint in ('public.search',):
+            return None
+        return redirect(url_for('auth.change_password', first_login=1))
 
     # Make request available to all templates for active link highlighting
     @app.context_processor
@@ -159,6 +180,7 @@ def create_app():
     app.register_blueprint(teacher_bp, url_prefix='/teacher')
     app.register_blueprint(assignments_bp, url_prefix='/assignments')
     app.register_blueprint(lessons_bp, url_prefix='/lessons')
+    app.register_blueprint(attendance_bp, url_prefix='/attendance')
 
     with app.app_context():
         db.create_all()

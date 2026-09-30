@@ -11,6 +11,55 @@ from werkzeug.utils import secure_filename
 from extensions import db
 
 
+# ------------------------------------------------------------------ schema
+
+def schema_problems(app=None):
+    """Compare the models against the live database and report differences.
+
+    `db.create_all()` only creates missing tables; it never adds a column to
+    a table that already exists. On a deployment where the database predates
+    the newest code, this is the difference between the app working and a
+    500 error. Returns a list of human-readable problems (empty if fine).
+    """
+    app = app or current_app
+    problems = []
+    with app.app_context():
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        existing_tables = set(inspector.get_table_names())
+        for model in db.Model.registry.mappers:
+            cls = model.class_
+            table = cls.__tablename__
+            if table not in existing_tables:
+                problems.append(f'Missing table: {table}')
+                continue
+            have = {c['name'] for c in inspector.get_columns(table)}
+            want = {c.name for c in cls.__table__.columns}
+            for column in sorted(want - have):
+                problems.append(f'Missing column: {table}.{column}')
+    return problems
+
+
+def log_schema_problems(app):
+    """Print a loud, actionable warning if the database is out of date."""
+    try:
+        problems = schema_problems(app)
+    except Exception:
+        return []
+    if problems:
+        app.logger.warning(
+            '\n' + '=' * 66 +
+            '\nDATABASE SCHEMA IS OUT OF DATE'
+            '\nThe database is missing changes required by the current code.'
+            '\nAdding or editing records will fail until this is run:'
+            '\n\n    python migrate_guardian_phone.py'
+            '\n\nDetails:'
+            + ''.join(f'\n  - {p}' for p in problems)
+            + '\n' + '=' * 66
+        )
+    return problems
+
+
 # ------------------------------------------------------------------ uploads
 
 def allowed_file(filename):

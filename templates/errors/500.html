@@ -4,9 +4,27 @@ block content %}
   <div class="text-center">
     <div class="error-code">500</div>
     <h2 class="mb-2">Something went wrong</h2>
-    <p class="text-muted mb-4">
-      An unexpected error occurred. Your work was not saved, so please try again.
-    </p>
+    {% if schema_problems %}
+      <p class="text-muted mb-3">
+        This is a known cause. The database on this server has not yet been
+        updated for the latest version of the platform, so records cannot be
+        saved until it is.
+      </p>
+      <div class="error-detail text-start mx-auto mb-4">
+        <p class="mb-2 fw-semibold">Missing from the database:</p>
+        <ul class="mb-3 ps-3">
+          {% for problem in schema_problems %}
+            <li><code>{{ problem }}</code></li>
+          {% endfor %}
+        </ul>
+        <p class="mb-1">The site administrator can fix this by running:</p>
+        <pre class="mb-0"><code>python migrate_guardian_phone.py</code></pre>
+      </div>
+    {% else %}
+      <p class="text-muted mb-4">
+        An unexpected error occurred. Your work was not saved, so please try again.
+      </p>
+    {% endif %}
     <a href="{{ url_for('public.home') }}" class="btn btn-brand px-4">
       <i class="fa-solid fa-house me-1"></i> Back to home
     </a>

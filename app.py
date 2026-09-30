@@ -100,7 +100,31 @@ def create_app():
     @app.errorhandler(500)
     def server_error(error):
         db.session.rollback()
-        return render_template('errors/500.html'), 500
+        # A schema mismatch is by far the most common cause of a 500 on a
+        # deployment, so say so plainly instead of showing a dead end.
+        from utils import schema_problems
+        try:
+            problems = schema_problems(app)
+        except Exception:
+            problems = []
+        return render_template('errors/500.html', schema_problems=problems), 500
+
+    @app.cli.command('check-schema')
+    def check_schema():
+        """Report any tables or columns the current code needs but the DB lacks."""
+        from utils import schema_problems
+        problems = schema_problems(app)
+        if not problems:
+            click.echo('Database schema is up to date.')
+            return
+        click.echo('')
+        click.echo('DATABASE SCHEMA IS OUT OF DATE')
+        click.echo('-' * 60)
+        for problem in problems:
+            click.echo(f'  - {problem}')
+        click.echo('')
+        click.echo('Run this to fix it:')
+        click.echo('    python migrate_guardian_phone.py')
 
     @app.cli.command('list-users')
     def list_users():
@@ -186,6 +210,11 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+
+    # Tell the operator immediately if the database predates the code,
+    # rather than letting the first edit fail with an unexplained 500.
+    from utils import log_schema_problems
+    log_schema_problems(app)
 
     return app
 

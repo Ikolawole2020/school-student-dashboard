@@ -1,5 +1,5 @@
 # blueprints/auth/routes.py
-from flask import render_template, request, redirect, url_for, flash
+from flask import render_template, request, redirect, url_for, flash, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, logout_user, login_required, current_user, fresh_login_required
 
@@ -30,7 +30,22 @@ def login():
 
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data.strip().lower()).first()
+        try:
+            user = User.query.filter_by(email=form.email.data.strip().lower()).first()
+        except Exception:
+            # Almost always an un-migrated database. Say so, because a raw
+            # 500 on the login page looks like a wrong password.
+            from utils import schema_problems
+            problems = schema_problems(current_app)
+            db.session.rollback()
+            if problems:
+                flash(
+                    'The site database needs updating before anyone can sign in. '
+                    'Please contact the site administrator.',
+                    'danger',
+                )
+                return render_template('errors/500.html', schema_problems=problems), 500
+            raise
         if user and user.is_active and check_password_hash(user.password_hash, form.password.data):
             login_user(user)
             flash(f'Welcome back, {user.email}.', 'success')

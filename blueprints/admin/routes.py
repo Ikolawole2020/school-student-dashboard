@@ -16,6 +16,7 @@ from models import (
 from forms import (
     AdminAddStudentForm, AdminEditStudentForm, AdminEditTeacherForm,
     TeacherForm, ResultForm, SeniorDeptForm, ClassForm, ViewResultForm,
+    TERM_CHOICES,
 )
 from subjects import get_subjects_for_class
 from utils import (
@@ -762,12 +763,18 @@ def manage_results():
 @admin_bp.route('/results/add/<int:student_id>', methods=['GET', 'POST'])
 @login_required
 def add_result(student_id):
+    """Pick a term first, then enter the marks for that term.
+
+    Previously this jumped straight to the subject entry page, so there was
+    no way to choose which term you were entering - you landed on a blank
+    form with no term selector at all. The term is now a required first step,
+    carried in the URL so a given term is bookmarkable and re-openable.
+    """
     denied = _require_admin()
     if denied:
         return denied
 
     student = Student.query.get_or_404(student_id)
-    form = ResultForm()
 
     if not student.class_rel:
         flash('Assign this student to a class before entering results.', 'warning')
@@ -777,23 +784,55 @@ def add_result(student_id):
     if student.senior_profile:
         department = student.senior_profile[0].department
 
-    subjects = get_subjects_for_class(student.class_rel.class_name, department)
+    class_name = student.class_rel.class_name
+    subjects = get_subjects_for_class(class_name, department)
 
+    # every term that already has a result for this student, with progress
+    term_rows = []
+    for term_value, _ in TERM_CHOICES:
+        done = Result.query.filter_by(
+            student_id=student.id, term=term_value
+        ).count()
+        term_rows.append({'term': term_value, 'done': done, 'total': len(subjects)})
+
+    form = ResultForm()
     if form.validate_on_submit():
-        # load what is already recorded so the form opens with current marks
-        existing = Result.query.filter_by(
-            student_id=student.id,
-            class_name=form.class_name.data,
-            term=form.term.data,
-        ).all()
+        chosen_term = (form.term.data or '').strip()
+        if not chosen_term:
+            flash('Choose a term first.', 'warning')
+            return render_template(
+                'admin/add_result.html', form=form, student=student,
+                subjects=None, term=None, existing=[], term_rows=term_rows,
+                subjects_count=len(subjects), class_name=class_name,
+            )
+        return redirect(url_for(
+            'admin.add_result', student_id=student.id, term=chosen_term
+        ))
+
+    chosen_term = (request.args.get('term') or '').strip()
+    if not chosen_term:
+        # first step: choose the term
+        form.class_name.data = class_name
         return render_template(
             'admin/add_result.html', form=form, student=student,
-            subjects=subjects, term=form.term.data, existing=existing,
+            subjects=None, term=None, existing=[], term_rows=term_rows,
+            subjects_count=len(subjects), class_name=class_name,
         )
+
+    # second step: enter the marks for the chosen term, pre-filled with
+    # anything already recorded so nothing is typed twice
+    existing = Result.query.filter_by(
+        student_id=student.id, class_name=class_name, term=chosen_term
+    ).all()
+    existing_by_subject = {r.subject: r for r in existing}
+    form.term.data = chosen_term
+    form.class_name.data = class_name
 
     return render_template(
         'admin/add_result.html', form=form, student=student,
-        subjects=subjects, term=None, existing=[],
+        subjects=subjects, term=chosen_term, existing=existing,
+        existing_by_subject=existing_by_subject,
+        term_rows=term_rows, subjects_count=len(subjects), class_name=class_name,
     )
 
 

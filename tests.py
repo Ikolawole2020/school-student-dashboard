@@ -1028,6 +1028,66 @@ class TestResultSummary(BaseCase):
         self.assertEqual(r.status_code, 200)
 
 
+class TestSummaryGradeMatchesSubjects(BaseCase):
+    """The "Average Grade" card must use the same bands as subject rows.
+
+    An earlier version of the summary card re-declared the grade bands in the
+    template and got them wrong (70% and above showed as D, and an E band that
+    does not exist in this school). A student with all A's was shown a D.
+    """
+
+    def _summary_grade(self, marks):
+        from utils import grade_for
+        import re
+        with self.app.app_context():
+            student = Student.query.first()
+            db.session.query(Result).delete()
+            for subject, total in marks:
+                db.session.add(Result(
+                    student_id=student.id, subject=subject,
+                    class_name='JSS1', term='Term 1',
+                    test_score=30, exam_score=total - 30,
+                    total_score=total, percentage=total, grade=grade_for(total),
+                ))
+            db.session.commit()
+            sid = student.id
+        self.login('admin@test.com', 'adminpass')
+        body = self.client.get(
+            f'/admin/students/{sid}?class_name=JSS1&term=Term 1'
+        ).get_data(as_text=True)
+        match = re.search(r'summary-value[^>]*>\s*([A-F])\s*<', body)
+        self.assertIsNotNone(match, 'Average Grade tile not found')
+        return match.group(1)
+
+    def test_all_a_subjects_gives_average_grade_a(self):
+        shown = self._summary_grade([
+            ('Mathematics', 95), ('English Language', 92),
+            ('Basic Science', 88), ('Social Studies', 90),
+        ])
+        self.assertEqual(shown, 'A')
+
+    def test_grade_bands_match_the_school_scale(self):
+        cases = [
+            ([('Mathematics', 72), ('English Language', 68)], 'A'),  # avg 70
+            ([('Mathematics', 65), ('English Language', 62)], 'B'),  # avg 63.5
+            ([('Mathematics', 52), ('English Language', 50)], 'C'),  # avg 51
+            ([('Mathematics', 47), ('English Language', 46)], 'D'),  # avg 46.5
+            ([('Mathematics', 30), ('English Language', 25)], 'F'),
+        ]
+        for marks, expected in cases:
+            with self.subTest(expected=expected):
+                self.assertEqual(self._summary_grade(marks), expected)
+
+    def test_never_shows_a_grade_beyond_d_or_f(self):
+        """The school has no E band, so the summary must never show one."""
+        for marks, _ in [
+            ([('Mathematics', 95)], None),
+            ([('Mathematics', 30)], None),
+        ]:
+            grade = self._summary_grade(marks)
+            self.assertIn(grade, 'ABCDF')
+
+
 class TestAttendance(BaseCase):
     """Teachers mark a daily register; students see only their own record."""
 

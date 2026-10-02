@@ -61,7 +61,13 @@ def create_app():
     # Make request available to all templates for active link highlighting
     @app.context_processor
     def inject_globals():
-        return dict(request=request, today=date.today())
+        from utils import grade_for
+        return dict(
+            request=request, today=date.today(),
+            # Single definition of the school grade bands, shared by the
+            # results summary and every subject row.
+            grade_for=grade_for,
+        )
 
     @app.template_filter('friendly_date')
     def friendly_date(value):

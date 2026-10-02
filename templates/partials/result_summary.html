@@ -15,6 +15,7 @@
 {% set best = best_row.percentage %}
 {% set worst = worst_row.percentage %}
 {% set passed = results | selectattr('percentage', 'ge', 50) | list | length %}
+{% set avg_grade = grade_for(avg) %}
 
 <div class="card border-0 shadow-sm mb-4 result-summary">
   <div class="card-body p-4">
@@ -39,7 +40,9 @@
       <div class="col-6 col-md-3">
         <div class="summary-stat">
           <div class="summary-value {{ 'text-success' if avg >= 50 else 'text-danger' }}">
-            {{ 'D' if avg >= 70 else 'E' if avg >= 60 else 'F' if avg >= 50 else 'F' }}
+            {# avg_grade comes from grade_for() in Python - the same function
+               that grades every subject row, so the two can never disagree. #}
+            {{ avg_grade }}
           </div>
           <div class="summary-label">Average Grade</div>
         </div>

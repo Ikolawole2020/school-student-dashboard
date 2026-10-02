@@ -903,10 +903,15 @@ def add_result(student_id):
 
 
 def _maybe_promote(student, class_name, term, department):
-    """Promote at the end of Term 3, but only once every subject for the
-    class has a stored result.
+    """Promote at the end of Term 3, as soon as any result is saved.
 
-    Partial entry is still fully supported - it simply does not promote anyone.
+    The school enters results term by term, so a student is often promoted
+    while some subjects are still outstanding. Requiring every subject to be
+    complete left students stuck in their old class, which is what the school
+    asked to avoid - partial results are expected and acceptable.
+
+    Partial entry is fully supported: whatever has been saved is saved, and the
+    promotion happens regardless of how many subjects are filled in.
     """
     current_class = student.class_rel.class_name if student.class_rel else ''
     required = get_subjects_for_class(current_class, department)
@@ -917,27 +922,20 @@ def _maybe_promote(student, class_name, term, department):
         student_id=student.id, class_name=current_class, term=term
     ).count()
 
-    if not required:
-        flash(
-            f'No subjects are defined for {current_class}, so there is nothing '
-            f'to promote on. Add subjects to the class first.',
-            'warning',
-        )
-        return False
-
-    if stored < len(required):
-        flash(
-            f'End of Term 3: {stored} of {len(required)} subjects recorded. '
-            f'No promotion yet - keep entering the remaining subjects.',
-            'info',
-        )
+    if not stored:
+        # nothing to promote on - this only fires on an actual save
         return False
 
     next_name = PROMOTION_MAP.get(current_class)
     if not next_name:
         _ensure_senior(student)
         db.session.commit()
-        flash(f'{student.name} has completed SS3 and graduated.', 'info')
+        flash(
+            f'{student.name} has completed SS3 with '
+            f'{stored} of {len(required) if required else stored} subject(s) '
+            f'recorded and has graduated.',
+            'info',
+        )
         return False
 
     next_cls = Class.query.filter(Class.class_name.ilike(next_name.strip())).first()
@@ -965,8 +963,16 @@ def _maybe_promote(student, class_name, term, department):
             db.session.delete(profile)
 
     db.session.commit()
+    missing = ''
+    if required and stored < len(required):
+        missing = (
+            f' {len(required) - stored} subject(s) are still outstanding - '
+            f'you can add them from their profile at any time.'
+        )
     flash(
-        f'{student.name} has been promoted from {old_name} to {next_name}.',
+        f'{student.name} has been promoted from {old_name} to {next_name}'
+        f' ({stored} of {len(required) if required else stored} subject(s) '
+        f'recorded).{missing}',
         'success',
     )
     return True

@@ -909,6 +909,78 @@ class TestDerivedStaffPassword(BaseCase):
             self.assertFalse(check_password_hash(s.user.password_hash, 'hacked123'))
 
 
+class TestPartialTerm3Promotion(BaseCase):
+    """The school promotes on Term 3 as soon as any result is saved.
+
+    A completeness requirement left students stuck in their old class whenever
+    a subject was still outstanding, which the school does not want.
+    """
+
+    def _jss1_student(self):
+        with self.app.app_context():
+            student = Student.query.filter_by(class_id=1).first()
+            if student is None:
+                student = Student.query.first()
+            return student.id, student.class_rel.class_name
+
+    def _save(self, student_id, class_name, term, subjects):
+        from subjects import get_subjects_for_class
+        available = get_subjects_for_class(class_name, None)
+        data = {'student_id': student_id, 'class_name': class_name, 'term': term}
+        for subject in available[:subjects]:
+            key = subject.replace(' ', '_')
+            data[f'test_{key}'] = '30'
+            data[f'exam_{key}'] = '50'
+        return self.client.post('/admin/results/save', data=data)
+
+    def _class_of(self, student_id):
+        with self.app.app_context():
+            return db.session.get(Student, student_id).class_rel.class_name
+
+    def test_promotes_with_a_single_subject_entered(self):
+        self.login('admin@test.com', 'adminpass')
+        sid, class_name = self._jss1_student()
+        self._save(sid, class_name, 'Term 3', 1)
+        self.assertNotEqual(self._class_of(sid), class_name)
+
+    def test_promotes_with_five_of_thirteen_subjects(self):
+        self.login('admin@test.com', 'adminpass')
+        sid, class_name = self._jss1_student()
+        self._save(sid, class_name, 'Term 3', 5)
+        self.assertNotEqual(self._class_of(sid), class_name)
+
+    def test_promotes_with_twelve_of_thirteen_subjects(self):
+        self.login('admin@test.com', 'adminpass')
+        sid, class_name = self._jss1_student()
+        self._save(sid, class_name, 'Term 3', 12)
+        self.assertNotEqual(self._class_of(sid), class_name)
+
+    def test_other_terms_do_not_promote(self):
+        self.login('admin@test.com', 'adminpass')
+        sid, class_name = self._jss1_student()
+        self._save(sid, class_name, 'Term 1', 12)
+        self._save(sid, class_name, 'Term 2', 12)
+        self.assertEqual(self._class_of(sid), class_name)
+
+    def test_partial_results_are_kept_after_promotion(self):
+        self.login('admin@test.com', 'adminpass')
+        sid, class_name = self._jss1_student()
+        self._save(sid, class_name, 'Term 3', 5)
+        with self.app.app_context():
+            saved = Result.query.filter_by(
+                student_id=sid, class_name=class_name, term='Term 3'
+            ).count()
+        self.assertEqual(saved, 5)
+
+    def test_no_double_promotion_on_resave(self):
+        self.login('admin@test.com', 'adminpass')
+        sid, class_name = self._jss1_student()
+        self._save(sid, class_name, 'Term 3', 3)
+        after_first = self._class_of(sid)
+        self._save(sid, class_name, 'Term 3', 3)
+        self.assertEqual(self._class_of(sid), after_first)
+
+
 class TestResultSummary(BaseCase):
     """The average/total summary shown on every results view."""
 

@@ -27,7 +27,7 @@ from app import create_app, app
 from extensions import db
 from models import (
     User, Student, Teacher, Class, Assignment, LessonPlan,
-    AttendanceRecord, Holiday, Post, PostImage, Testimonial,
+    AttendanceRecord, Holiday, Post, PostImage, Testimonial, Result,
 )
 
 _REAL_DB_MARKER = os.path.join('instance', 'starlight.db')
@@ -818,6 +818,142 @@ class TestDerivedStaffPassword(BaseCase):
         with self.app.app_context():
             t = Teacher.query.get(teacher_id)
             self.assertTrue(check_password_hash(t.user.password_hash, 'adasmc'))
+
+    def test_admin_sets_teacher_password_of_own_choice(self):
+        """The admin types the password instead of getting a random one."""
+        from werkzeug.security import check_password_hash
+        self.login('admin@test.com', 'adminpass')
+        self.client.post(
+            '/admin/teachers/add',
+            data={'name': 'Ada Obi', 'phone': '08031234567', 'class_name': ''},
+            follow_redirects=True,
+        )
+        with self.app.app_context():
+            teacher_id = Teacher.query.filter_by(name='Ada Obi').first().id
+
+        r = self.client.post(
+            f'/admin/teachers/{teacher_id}/set-password',
+            data={'new_password': 'chosen123', 'confirm_password': 'chosen123',
+                  'must_change': 'y'},
+        )
+        self.assertEqual(r.status_code, 302)
+        with self.app.app_context():
+            t = Teacher.query.get(teacher_id)
+            self.assertTrue(check_password_hash(t.user.password_hash, 'chosen123'))
+            # ticked -> must change at first login
+            self.assertTrue(t.user.must_change_password)
+
+    def test_unticked_checkbox_does_not_force_password_change(self):
+        """A browser omits an unticked checkbox, so it must read as off."""
+        from werkzeug.security import check_password_hash
+        self.login('admin@test.com', 'adminpass')
+        self.client.post(
+            '/admin/teachers/add',
+            data={'name': 'Ada Obi', 'phone': '08031234567', 'class_name': ''},
+            follow_redirects=True,
+        )
+        with self.app.app_context():
+            teacher_id = Teacher.query.filter_by(name='Ada Obi').first().id
+        self.client.post(
+            f'/admin/teachers/{teacher_id}/set-password',
+            data={'new_password': 'chosen123', 'confirm_password': 'chosen123'},
+        )
+        with self.app.app_context():
+            t = Teacher.query.get(teacher_id)
+            self.assertTrue(check_password_hash(t.user.password_hash, 'chosen123'))
+            self.assertFalse(t.user.must_change_password)
+
+    def test_admin_can_skip_forcing_password_change(self):
+        from werkzeug.security import check_password_hash
+        self.login('admin@test.com', 'adminpass')
+        with self.app.app_context():
+            student_id = Student.query.first().id
+        self.client.post(
+            f'/admin/students/{student_id}/set-password',
+            data={'new_password': 'plain123', 'confirm_password': 'plain123'},
+        )
+        with self.app.app_context():
+            s = Student.query.get(student_id)
+            self.assertTrue(check_password_hash(s.user.password_hash, 'plain123'))
+            self.assertFalse(s.user.must_change_password)
+
+    def test_set_password_rejects_short_and_mismatched(self):
+        self.login('admin@test.com', 'adminpass')
+        with self.app.app_context():
+            student_id = Student.query.first().id
+        r = self.client.post(
+            f'/admin/students/{student_id}/set-password',
+            data={'new_password': 'abc', 'confirm_password': 'abc'},
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('at least 6', r.get_data(as_text=True).lower())
+
+        r = self.client.post(
+            f'/admin/students/{student_id}/set-password',
+            data={'new_password': 'abcdef1', 'confirm_password': 'different1'},
+        )
+        self.assertIn('match', r.get_data(as_text=True).lower())
+
+    def test_teacher_cannot_set_someone_elses_password(self):
+        from werkzeug.security import check_password_hash
+        with self.app.app_context():
+            student_id = Student.query.first().id
+        self.login('teacher1@test.com', 'teachpass')
+        r = self.client.post(
+            f'/admin/students/{student_id}/set-password',
+            data={'new_password': 'hacked123', 'confirm_password': 'hacked123'},
+        )
+        self.assertIn(r.status_code, (302, 403))
+        with self.app.app_context():
+            s = Student.query.get(student_id)
+            self.assertFalse(check_password_hash(s.user.password_hash, 'hacked123'))
+
+
+class TestResultSummary(BaseCase):
+    """The average/total summary shown on every results view."""
+
+    def _seed(self, marks):
+        with self.app.app_context():
+            student = Student.query.first()
+            for subject, total in marks:
+                db.session.add(Result(
+                    student_id=student.id, subject=subject,
+                    class_name='JSS1', term='Term 1',
+                    test_score=30, exam_score=total - 30,
+                    total_score=total, percentage=total, grade='B',
+                ))
+            db.session.commit()
+            return student.id, student.student_public_id
+
+    def test_admin_profile_shows_average_and_total(self):
+        sid, _ = self._seed([('Mathematics', 80), ('English Language', 60)])
+        self.login('admin@test.com', 'adminpass')
+        r = self.client.get(f'/admin/students/{sid}?class_name=JSS1&term=Term 1')
+        body = r.get_data(as_text=True)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('Result Summary', body)
+        self.assertIn('70.00%', body)   # (80+60)/2
+        self.assertIn('140', body)       # total score
+        self.assertIn('Best:', body)
+        self.assertIn('Lowest:', body)
+
+    def test_student_results_page_shows_average(self):
+        _, public_id = self._seed([('Mathematics', 90), ('Basic Science', 70)])
+        with self.app.app_context():
+            email = Student.query.first().user.email
+        self.login(email, 'studpass')
+        r = self.client.get('/student/results?class_name=JSS1&term=Term 1')
+        body = r.get_data(as_text=True)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('Result Summary', body)
+        self.assertIn('80.00%', body)   # (90+70)/2
+
+    def test_summary_does_not_crash_with_no_results(self):
+        self.login('admin@test.com', 'adminpass')
+        with self.app.app_context():
+            sid = Student.query.first().id
+        r = self.client.get(f'/admin/students/{sid}?class_name=JSS1&term=Term 2')
+        self.assertEqual(r.status_code, 200)
 
 
 class TestAttendance(BaseCase):

@@ -16,7 +16,7 @@ from models import (
 from forms import (
     AdminAddStudentForm, AdminEditStudentForm, AdminEditTeacherForm,
     TeacherForm, ResultForm, SeniorDeptForm, ClassForm, ViewResultForm,
-    TERM_CHOICES,
+    TERM_CHOICES, AdminSetPasswordForm,
 )
 from subjects import get_subjects_for_class
 from utils import (
@@ -337,6 +337,72 @@ def delete_student(id):
     db.session.commit()
     flash(f'{student.name} deleted.', 'info')
     return redirect(url_for('admin.students'))
+
+
+@admin_bp.route('/students/<int:id>/set-password', methods=['GET', 'POST'])
+@login_required
+def set_student_password(id):
+    """Set a student's password to a value the admin chooses."""
+    denied = _require_admin()
+    if denied:
+        return denied
+
+    student = Student.query.get_or_404(id)
+    if not student.user:
+        flash('This student has no linked login account.', 'danger')
+        return redirect(url_for('admin.students'))
+
+    form = AdminSetPasswordForm()
+    if form.validate_on_submit():
+        student.user.password_hash = generate_password_hash(form.new_password.data)
+        student.user.must_change_password = bool(form.must_change.data)
+        db.session.commit()
+        flash(
+            f'Password set for {student.name}. Share it with them securely, '
+            f'{"and ask them to change it at their next login." if form.must_change.data else "no change will be requested."}',
+            'success',
+        )
+        return redirect(url_for('admin.student_profile', id=student.id))
+
+    return render_template(
+        'admin/set_password.html', form=form,
+        person_name=student.name,
+        person_role='Student',
+        back_url=url_for('admin.student_profile', id=student.id),
+    )
+
+
+@admin_bp.route('/teachers/<int:id>/set-password', methods=['GET', 'POST'])
+@login_required
+def set_teacher_password(id):
+    """Set a teacher's password to a value the admin chooses."""
+    denied = _require_admin()
+    if denied:
+        return denied
+
+    teacher = Teacher.query.get_or_404(id)
+    if not teacher.user:
+        flash('This teacher has no linked login account.', 'danger')
+        return redirect(url_for('admin.teachers'))
+
+    form = AdminSetPasswordForm()
+    if form.validate_on_submit():
+        teacher.user.password_hash = generate_password_hash(form.new_password.data)
+        teacher.user.must_change_password = bool(form.must_change.data)
+        db.session.commit()
+        flash(
+            f'Password set for {teacher.name}. Share it with them securely, '
+            f'{"and ask them to change it at their next login." if form.must_change.data else "no change will be requested."}',
+            'success',
+        )
+        return redirect(url_for('admin.teachers'))
+
+    return render_template(
+        'admin/set_password.html', form=form,
+        person_name=teacher.name,
+        person_role='Teacher',
+        back_url=url_for('admin.teachers'),
+    )
 
 
 @admin_bp.route('/students/<int:id>/reset-password', methods=['POST'])

@@ -1,0 +1,75 @@
+{# Summary of one student's results for a single class + term.
+
+   Used by the student results page, the admin student profile and the public
+   result checker so all three show the same figures. Expects:
+     results - list of Result rows for one class/term
+#}
+{# Guard the whole block: the admin profile includes this whenever a class and
+   term are selected, including before any marks have been entered. #}
+{% if results and results | length > 0 %}
+{% set total_score = results | sum(attribute='total_score') %}
+{% set avg = (results | sum(attribute='percentage')) / results | length %}
+{# max/min with attribute= return the winning *item*, so read the score off it #}
+{% set best_row = results | max(attribute='percentage') %}
+{% set worst_row = results | min(attribute='percentage') %}
+{% set best = best_row.percentage %}
+{% set worst = worst_row.percentage %}
+{% set passed = results | selectattr('percentage', 'ge', 50) | list | length %}
+
+<div class="card border-0 shadow-sm mb-4 result-summary">
+  <div class="card-body p-4">
+    <h5 class="mb-3">
+      <i class="fa-solid fa-chart-pie me-2 text-primary"></i>Result Summary
+      {% if summary_label %}<span class="text-muted fs-6 fw-normal">({{ summary_label }})</span>{% endif %}
+    </h5>
+
+    <div class="row g-3 text-center">
+      <div class="col-6 col-md-3">
+        <div class="summary-stat">
+          <div class="summary-value text-primary">{{ "%.2f" | format(avg) }}%</div>
+          <div class="summary-label">Average</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="summary-stat">
+          <div class="summary-value">{{ total_score | round(0) | int }}</div>
+          <div class="summary-label">Total Score</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="summary-stat">
+          <div class="summary-value {{ 'text-success' if avg >= 50 else 'text-danger' }}">
+            {{ 'D' if avg >= 70 else 'E' if avg >= 60 else 'F' if avg >= 50 else 'F' }}
+          </div>
+          <div class="summary-label">Average Grade</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="summary-stat">
+          <div class="summary-value">{{ results | length }}</div>
+          <div class="summary-label">Subjects</div>
+        </div>
+      </div>
+    </div>
+
+    <hr />
+
+    <div class="row g-3 small">
+      <div class="col-md-4">
+        <strong>Best:</strong>
+        {{ best_row.subject }}
+        ({{ "%.1f" | format(best) }}%)
+      </div>
+      <div class="col-md-4">
+        <strong>Lowest:</strong>
+        {{ worst_row.subject }}
+        ({{ "%.1f" | format(worst) }}%)
+      </div>
+      <div class="col-md-4">
+        <strong>Passed:</strong>
+        {{ passed }} of {{ results | length }} subjects
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}

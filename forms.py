@@ -141,6 +141,27 @@ class ChangePasswordForm(FlaskForm):
     submit = SubmitField('Change password')
 
 
+class AdminSetPasswordForm(FlaskForm):
+    """Lets an admin type a new password for a teacher or student.
+
+    The old reset button invented a random password and displayed it once in a
+    flash message, which is easy to lose and awkward to hand over. This lets
+    the admin choose a password and hand it over however they like.
+    """
+    new_password = PasswordField(
+        'New password',
+        validators=[DataRequired(), Length(min=6, message='Use at least 6 characters.')],
+    )
+    confirm_password = PasswordField(
+        'Confirm new password',
+        validators=[DataRequired(), EqualTo('new_password', message='Passwords must match.')],
+    )
+    must_change = BooleanField(
+        'Ask them to change it at their next login', default=True
+    )
+    submit = SubmitField('Set password')
+
+
 
 class StudentRegisterForm(FlaskForm):
     name = StringField('Full name', validators=[DataRequired(), Length(max=120)])

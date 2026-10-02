@@ -45,17 +45,13 @@ block content %}
               <a href="{{ url_for('admin.edit_teacher', id=t.id) }}" class="btn btn-action">
                 <i class="fa-solid fa-edit"></i> Edit
               </a>
-              <form
-                method="post"
-                action="{{ url_for('admin.reset_teacher_password', id=t.id) }}"
-                class="d-inline"
-                onsubmit="return confirm('Reset this teacher\'s password? The new one will be shown once.')"
+              <a
+                href="{{ url_for('admin.set_teacher_password', id=t.id) }}"
+                class="btn btn-action"
+                title="Set password"
               >
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                <button type="submit" class="btn btn-action" title="Reset password">
-                  <i class="fa-solid fa-key"></i>
-                </button>
-              </form>
+                <i class="fa-solid fa-key"></i>
+              </a>
               <form
                 method="post"
                 action="{{ url_for('admin.delete_teacher', id=t.id) }}"

@@ -9,6 +9,9 @@
     <a href="{{ url_for('admin.edit_student', id=student.id) }}" class="btn btn-outline-brand">
       <i class="fa-solid fa-edit me-1"></i>Edit Student
     </a>
+    <a href="{{ url_for('admin.set_student_password', id=student.id) }}" class="btn btn-outline-brand">
+      <i class="fa-solid fa-key me-1"></i>Set Password
+    </a>
     <a href="{{ url_for('admin.students') }}" class="btn btn-outline-secondary">
       <i class="fa-solid fa-arrow-left me-1"></i>Back
     </a>
@@ -78,14 +81,9 @@
         <h5 class="text-center mb-3">
           Results for {{ request.args.get('class_name') }} - {{ request.args.get('term') }}
         </h5>
-        {% set total = namespace(value=0) %}
-        {% for r in filtered_results %}
-          {% set total.value = total.value + r.percentage %}
-        {% endfor %}
-        {% set overall_avg = total.value / filtered_results|length if filtered_results|length > 0 else 0 %}
-        <div class="alert alert-info text-center mb-3">
-          <strong>Overall Average: {{ "%.2f"|format(overall_avg) }}%</strong>
-        </div>
+        {% with summary_label = request.args.get('class_name') ~ ' - ' ~ request.args.get('term'), results = filtered_results %}
+          {% include 'partials/result_summary.html' %}
+        {% endwith %}
         <div class="table-responsive">
           <table class="table table-hover mb-0">
             <thead>

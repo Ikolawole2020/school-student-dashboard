@@ -109,14 +109,9 @@ School{% endblock %} {% block content %}
       </div>
 
       {% if results %}
-      {% set total = namespace(value=0) %}
-      {% for r in results %}
-        {% set total.value = total.value + r.percentage %}
-      {% endfor %}
-      {% set overall_avg = total.value / results|length if results|length > 0 else 0 %}
-      <div class="alert alert-info text-center mt-4 mb-3">
-        <strong>Overall Average: {{ "%.2f"|format(overall_avg) }}%</strong>
-      </div>
+      {% with summary_label = (class_name ~ ' - ' ~ term) if class_name is defined and term is defined else none %}
+        {% include 'partials/result_summary.html' %}
+      {% endwith %}
       <div class="table-responsive">
         <table class="table table-hover">
           <thead>

@@ -17,10 +17,34 @@ def all_subjects():
 def get_subjects_for_class(class_name, department=None):
     """
     Returns a list of subjects for a given class and department.
+
+    The result is always de-duplicated. A repeated subject produced two
+    identical rows on the results form that shared one form field, so the
+    second could never be saved and the student never reached the "all
+    subjects done" state that Term 3 promotion depends on.
     """
     if not class_name:
         return []
     class_name = class_name.upper()
+
+    return _dedupe(_subjects_for(class_name, department))
+
+
+def _dedupe(subjects):
+    """Preserve order, drop repeats (case-insensitively)."""
+    seen = set()
+    unique = []
+    for subject in subjects:
+        key = subject.strip().lower()
+        if key not in seen:
+            seen.add(key)
+            unique.append(subject)
+    return unique
+
+
+def _subjects_for(class_name, department=None):
+    if not class_name:
+        return []
 
     # Creche - Using same subjects as KG
     if class_name == 'CRECHE':
@@ -167,7 +191,6 @@ def get_subjects_for_class(class_name, department=None):
             'Business Studies',
             'Christian Religious Studies',
             'Yoruba',
-            'Social Studies',
         ]
         return subjects
     
@@ -205,12 +228,14 @@ def get_subjects_for_class(class_name, department=None):
                 'Government',
             ]
         else:
-            # If no department specified, return all subjects
+            # If no department specified, return all subjects.
+            # Only list subjects not already in general_subjects - repeating
+            # one here produced two identical rows on the entry form, and the
+            # two rows shared a single form field, so the last one could never
+            # be saved and Term 3 promotion never triggered.
             return general_subjects + [
                 'Physics',
                 'Chemistry',
-                'Biology',
-                'Further Mathematics',
                 'Literature in English',
                 'Government',
                 'Christian Religious Studies',
@@ -218,8 +243,6 @@ def get_subjects_for_class(class_name, department=None):
                 'History',
                 'Commerce',
                 'Accounting',
-                'Economics',
-                'Marketing'
             ]
 
     # Default subjects for any other class

@@ -840,16 +840,24 @@ def _maybe_promote(student, class_name, term, department):
     """Promote at the end of Term 3, but only once every subject for the
     class has a stored result.
 
-    This used to fire as soon as a single subject was saved, which promoted
-    students who had almost no marks. Partial entry is still fully supported
-    - it simply no longer promotes anyone.
+    Partial entry is still fully supported - it simply does not promote anyone.
     """
-    required = get_subjects_for_class(
-        student.class_rel.class_name if student.class_rel else '', department
-    )
+    current_class = student.class_rel.class_name if student.class_rel else ''
+    required = get_subjects_for_class(current_class, department)
+
+    # count marks against the class the student is actually sitting in, so a
+    # re-save after promotion cannot re-trigger or double-count
     stored = Result.query.filter_by(
-        student_id=student.id, class_name=class_name, term=term
+        student_id=student.id, class_name=current_class, term=term
     ).count()
+
+    if not required:
+        flash(
+            f'No subjects are defined for {current_class}, so there is nothing '
+            f'to promote on. Add subjects to the class first.',
+            'warning',
+        )
+        return False
 
     if stored < len(required):
         flash(
@@ -857,14 +865,45 @@ def _maybe_promote(student, class_name, term, department):
             f'No promotion yet - keep entering the remaining subjects.',
             'info',
         )
-        return
+        return False
 
-    next_id = get_next_class(student.class_rel.class_name)
-    if not next_id:
+    next_name = PROMOTION_MAP.get(current_class)
+    if not next_name:
         _ensure_senior(student)
         db.session.commit()
         flash(f'{student.name} has completed SS3 and graduated.', 'info')
-        return
+        return False
+
+    next_cls = Class.query.filter(Class.class_name.ilike(next_name.strip())).first()
+    if not next_cls:
+        # the class does not exist yet - do NOT silently move the student
+        # somewhere unintended
+        flash(
+            f'{student.name} finished {current_class}, but the next class '
+            f'"{next_name}" has not been created yet. '
+            f'Create the class, then promote the student.',
+            'warning',
+        )
+        return False
+
+    if student.class_id == next_cls.id:
+        # already promoted by an earlier save in this same term
+        return False
+
+    old_name = current_class
+    student.class_id = next_cls.id
+
+    # a senior record only belongs to SS1-SS3; drop it when leaving that band
+    if DEMOTION_MAP.get(next_name) != 'JSS3' and student.senior_profile:
+        for profile in student.senior_profile:
+            db.session.delete(profile)
+
+    db.session.commit()
+    flash(
+        f'{student.name} has been promoted from {old_name} to {next_name}.',
+        'success',
+    )
+    return True
 
 
 @admin_bp.route('/results/save', methods=['POST'])

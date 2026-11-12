@@ -1,5 +1,5 @@
 # blueprints/public/routes.py
-from flask import render_template, request, send_from_directory, current_app, abort
+from flask import render_template, request, make_response, redirect, url_for, current_app, abort, Blueprint
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 
@@ -82,6 +82,113 @@ def check_result():
         'public/check_result.html', student=student, results=results,
         class_name=class_name, term=term, error=error, is_staff=staff,
     )
+
+@public_bp.route('/download/result')
+@login_required
+def download_result():
+    """Generate a downloadable HTML results page."""
+    student_public_id = request.args.get('student_id', '').strip()
+    class_name = request.args.get('class_name', '').strip()
+    term = request.args.get('term', '').strip()
+    
+    # Determine the student
+    is_staff = is_admin() or is_teacher()
+    
+    if is_staff:
+        # Staff can download any student's results
+        sid = request.args.get('student_id', '').strip()
+        if sid:
+            student = Student.query.filter_by(student_public_id=sid).first()
+        else:
+            student = Student.query.first()
+        if not student:
+            flash('No student found.', 'danger')
+            return redirect(url_for('public.home'))
+    else:
+        # Students can only download their own results
+        student = current_student()
+        if not student or student.public_id != student_public_id:
+            flash('You can only download your own results.', 'danger')
+            return redirect(url_for('public.home'))
+    
+    # Get results for this student/class/term
+    query = Result.query.filter_by(student_id=student.id)
+    if class_name:
+        query = query.filter_by(class_name=class_name)
+    if term:
+        query = query.filter_by(term=term)
+    results = query.order_by(Result.class_name, Result.term, Result.subject).all()
+    
+    # Generate HTML content
+    html_content = render_template(
+        'partials/result_print.html',
+        student=student,
+        results=results,
+        class_name=class_name,
+        term=term,
+    )
+    
+    # Return as downloadable HTML
+    return make_response(html_content), 200, {
+        'Content-Type': 'text/html',
+        'Content-Disposition': f'attachment; filename=results_{student.public_id}_{class_name or "all"}_{term or "all"}.html'
+    }
+
+
+# Download route added to app directly - see app.py
+# The URL is /download/result and is handled by the public blueprint logic
+# But since app_bp isn't available here, we'll handle it differently
+# Actually, let's just put this in the admin blueprint instead
+# For now, redirect to home with a message
+    """Generate a downloadable HTML results page."""
+    student_public_id = request.args.get('student_id', '').strip()
+    class_name = request.args.get('class_name', '').strip()
+    term = request.args.get('term', '').strip()
+    
+    # Determine the student
+    is_staff = is_admin() or is_teacher()
+    
+    if is_staff:
+        # Staff can download any student's results
+        sid = request.args.get('student_id', '').strip()
+        if sid:
+            student = Student.query.filter_by(student_public_id=sid).first()
+        else:
+            # Default to the first student if no ID provided
+            student = Student.query.first()
+        if not student:
+            flash('No student found.', 'danger')
+            return redirect(url_for('public.home'))
+    else:
+        # Students can only download their own results
+        student = current_student()
+        if not student or student.public_id != student_public_id:
+            flash('You can only download your own results.', 'danger')
+            return redirect(url_for('public.home'))
+    
+    # Get results for this student/class/term
+    query = Result.query.filter_by(student_id=student.id)
+    if class_name:
+        query = query.filter_by(class_name=class_name)
+    if term:
+        query = query.filter_by(term=term)
+    results = query.order_by(Result.class_name, Result.term, Result.subject).all()
+    
+    # Generate HTML content
+    html_content = render_template(
+        'partials/result_print.html',
+        student=student,
+        results=results,
+        class_name=class_name,
+        term=term,
+    )
+    
+    # Return as downloadable HTML
+    return make_response(html_content), 200, {
+        'Content-Type': 'text/html',
+        'Content-Disposition': f'attachment; filename=results_{student.public_id}_{class_name or "all"}_{term or "all"}.html'
+    }
+
 
 
 @public_bp.route('/search')

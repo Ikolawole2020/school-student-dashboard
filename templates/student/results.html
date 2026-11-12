@@ -11,6 +11,14 @@
     {% with summary_label = (class_param ~ ' - ' ~ term_param) if class_param and term_param else none %}
       {% include 'partials/result_summary.html' %}
     {% endwith %}
+    <div class="mt-3">
+      <button onclick="window.print()" class="btn btn-sm btn-outline-primary">
+        <i class="fa-solid fa-print me-2"></i>Print
+      </button>
+      <a href="/download/result?class_name={{ class_param|default('') }}&term={{ term_param|default('') }}&student_id={{ student.id }}" class="btn btn-sm btn-outline-secondary" download>
+        <i class="fa-solid fa-download me-2"></i>Download
+      </a>
+    </div>
     <div class="table-responsive">
       <table class="table table-hover mb-0">
         <thead>

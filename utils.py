@@ -214,16 +214,36 @@ def derive_staff_password(name):
 
 
 def grade_for(percentage):
-    """Grade band used for both exam results and assignment scores."""
+    """School grading scale.
+
+    Bands (the school uses plus/minus suffixes):
+      A1  75–100  excellent
+      B2  70–74   very good
+      B3  65–69   good
+      C4  60–64   credit
+      C5  55–59   credit
+      C6  50–54   credit
+      D7  45–49   pass
+      E8  40–44   pass
+      F9  0–39    fail
+    """
+    if percentage >= 75:
+        return 'A1'
     if percentage >= 70:
-        return 'A'
+        return 'B2'
+    if percentage >= 65:
+        return 'B3'
     if percentage >= 60:
-        return 'B'
+        return 'C4'
+    if percentage >= 55:
+        return 'C5'
     if percentage >= 50:
-        return 'C'
+        return 'C6'
     if percentage >= 45:
-        return 'D'
-    return 'F'
+        return 'D7'
+    if percentage >= 40:
+        return 'E8'
+    return 'F9'
 
 
 # -------------------------------------------------------------- attendance

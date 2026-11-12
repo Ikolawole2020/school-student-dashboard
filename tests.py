@@ -1068,24 +1068,24 @@ class TestSummaryGradeMatchesSubjects(BaseCase):
 
     def test_grade_bands_match_the_school_scale(self):
         cases = [
-            ([('Mathematics', 72), ('English Language', 68)], 'A'),  # avg 70
-            ([('Mathematics', 65), ('English Language', 62)], 'B'),  # avg 63.5
-            ([('Mathematics', 52), ('English Language', 50)], 'C'),  # avg 51
-            ([('Mathematics', 47), ('English Language', 46)], 'D'),  # avg 46.5
-            ([('Mathematics', 30), ('English Language', 25)], 'F'),
+            ([('Mathematics', 72), ('English Language', 68)], 'B2'),  # avg 70 -> B2
+            ([('Mathematics', 65), ('English Language', 62)], 'C4'),  # avg 63.5 -> C4
+            ([('Mathematics', 52), ('English Language', 50)], 'C6'),  # avg 51 -> C6
+            ([('Mathematics', 47), ('English Language', 46)], 'D7'),  # avg 46.5 -> D7
+            ([('Mathematics', 30), ('English Language', 25)], 'F9'),  # avg 27.5 -> F9
         ]
         for marks, expected in cases:
             with self.subTest(expected=expected):
                 self.assertEqual(self._summary_grade(marks), expected)
 
-    def test_never_shows_a_grade_beyond_d_or_f(self):
-        """The school has no E band, so the summary must never show one."""
+    def test_never_shows_a_grade_beyond_f9(self):
+        """The school has bands A1 through F9, so the summary must never show anything outside that set."""
         for marks, _ in [
             ([('Mathematics', 95)], None),
             ([('Mathematics', 30)], None),
         ]:
             grade = self._summary_grade(marks)
-            self.assertIn(grade, 'ABCDF')
+            self.assertIn(grade, 'A1 B2 B3 C4 C5 C6 D7 E8 F9'.split())
 
 
 class TestAttendance(BaseCase):
